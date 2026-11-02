@@ -282,44 +282,156 @@ boundaries of the focus area.}
 % =====================================================================
 \section{Data}\label{sec:data}
 % =====================================================================
-Town-specific data for Cuba are limited, so the study relies on broader public datasets that can
-be filtered geographically.
+Town-specific data for Cuba are limited, so the study relies on public datasets that can be
+filtered to Sandoval County and the area around Cuba. Eight datasets were collected
+(Table~\ref{tab:datasets}). For seven of them, a one-page brief records what the dataset contains,
+which research questions it can help answer, which plots to make from it, and what it can't
+show; a plotting guide compares all seven. The raw files are kept unedited in the project
+repository \citep{team23_repo}.
+
+% ---------------------------------------------------------------------
+%  Table 1: datasets (full width; LaTeX places it at the top of a page)
+% ---------------------------------------------------------------------
+\begin{table*}[t]
+  \caption{Datasets collected for the study. Distances are measured from Cuba.}
+  \label{tab:datasets}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright}p{0.9in}>{\raggedright}p{0.95in}
+      >{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X l@{}}
+    \toprule
+    \textbf{Dataset} & \textbf{Source} & \textbf{Contents} & \textbf{Relevance to Cuba} & \textbf{Used for} \\
+    \midrule
+    Groundwater-level statistics & USGS & Monthly and yearly depth to water at 9 wells on 4 sites,
+      1998--2026 & Wells are 40--59 miles away, in the eastern part of the county & RQ1, RQ5 \\
+    Groundwater levels & NM Bureau of Geology & 456 depth-to-water measurements at 87 wells,
+      1997--2019, with well depth & Nearest well is about 24 miles away & RQ1, RQ2, RQ5 \\
+    Aquifer tests & NM Office of the State Engineer & 179 tests in Sandoval County, 1930--2008:
+      well construction, formation, and hydraulic properties & Includes tests at a well about
+      half a mile from Cuba & RQ2--RQ4 \\
+    Wells with well logs & NM Office of the State Engineer & Drilling records for 6 Sandoval
+      County wells, 1978--2022: borehole depth and depth to first water & Link to Cuba's wells
+      not verified & RQ2, RQ5 \\
+    Ojo Alamo Sandstone & USGS map atlas, 1990 & Maps of depth to the top of the sandstone, its
+      thickness, and wells completed in it & Regional; covers the Cuba area & RQ4 \\
+    San Jose Formation near Lindrith & NM Geological Society, 2025 & Water-bearing units,
+      thickness of the Cuba Mesa Member, and groundwater levels & Centered near Lindrith, about
+      20 miles north & RQ4 \\
+    Rio Puerco at Cuba & USGS station 08332525 & 10 streamflow measurements (2019--2026) and
+      4 gage-height readings & At Cuba, but measures the river, not groundwater & RQ3, RQ5 \\
+    Aquifer sensitivity & NM Water Data & Sensitivity class for 613 mapped areas & Can't be
+      located: the file has no coordinates & Not used \\
+    \bottomrule
+  \end{tabularx}
+\end{table*}
 
 \subsection{Datasets Used}
-\subsubsection{USGS monitoring statistics}
-USGS monthly and yearly statistics for 30 monitoring sites in Sandoval County (17 stream gages,
-9 wells, 2 canals, and 2 reservoirs), with records from 1926 to 2026. The file covers streamflow,
-depth to groundwater, reservoir storage, suspended sediment, water temperature, and water-quality
-measures: specific conductance, dissolved oxygen, pH, and turbidity.
-\draftnote{Source to be added.}
+\subsubsection{Groundwater levels}
+Two datasets measure depth to water below land surface, where a larger number means a lower
+water table. The USGS statistics \citep{usgs_stats} give long monthly records for 9 wells at four
+sites: Sandia, Lincoln Middle School in Rio Rancho, Bernalillo, and Dome Road. The same download also covers stream gages, canals, and
+reservoirs, but only the groundwater records are used. The NM Bureau of Geology measurements
+\citep{nmwd_levels} cover more wells but fewer years: most were measured in 1997--1998, and only
+5 wells were measured again in 2016--2019, so few of them can show a long-term trend.
 
-\subsubsection{OSE aquifer tests}
-New Mexico Office of the State Engineer aquifer-test records, 3,455 statewide and 179 in Sandoval
-County, including well depth, screened interval, geologic formation, and hydraulic properties
-such as transmissivity and storativity.
-\draftnote{Source to be added.}
+\subsubsection{Well and aquifer records}
+The State Engineer's aquifer-test records \citep{ose_aquifertests} are the only dataset with
+hydraulic properties, such as transmissivity and storativity, and they name the formation for
+125 of the 179 tests. They include 8 Ojo Alamo Sandstone records at 5 locations, among them tests
+from 1957 and 1960 at a school well about half a mile from Cuba, but only one San Jose Formation
+well. The State Engineer's well logs \citep{ose_welllogs} add borehole depth and the depth at which
+water was first found on the day each well was drilled, which is not a current water level.
+\draftnote{Add the exact download page for the aquifer-test records.}
 
-\subsection{Datasets to Be Collected}
-\begin{itemize}
-  \item \textbf{Aquifer geometry near Cuba:} USGS San Juan Basin digital aquifer data for the Ojo
-        Alamo Sandstone and San Jose Formation \citep{usgs_rasa_sjb}.
-  \item \textbf{More water-level records:} the National Ground-Water Monitoring Network
-        \citep{ngwmn} and the Healy Collaborative Groundwater Monitoring Network \citep{cgmn}.
-  \item \textbf{County boundary:} a Sandoval County boundary layer to organize the maps.
-\end{itemize}
-\draftnote{Data acquisition lead: explain why each dataset was chosen and which research questions
-it answers.}
+\subsubsection{Geology of the Cuba-area aquifers}
+Two publications describe the formations studied for RQ4: a USGS map atlas of the Ojo Alamo
+Sandstone across the San Juan Basin \citep{thorn1990}, and a study of the San Jose Formation near
+Lindrith that identifies four water-bearing units and maps the Cuba Mesa Member
+\citep{blandford2025}. Both are maps and reports rather than data tables, and neither shows which
+formation Cuba's municipal wells draw from.
+
+\subsubsection{Surface water at Cuba}
+USGS station 08332525 on the Rio Puerco \citep{usgs_riopuerco} is the only dataset measured at
+Cuba itself. Six of its 10 streamflow visits found no flow, and the other four measured 6.9 to
+20.4 cubic feet per second. Because these are occasional visits rather than a continuous record,
+the data are used only as context for the Cuba case study.
+
+\subsubsection{Not used}
+The aquifer sensitivity file \citep{nmwd_sensitivity} has no coordinates or shapes, so it can't be
+mapped or matched to Cuba without its separate map layer, which was not obtained.
+
+\subsection{Data Not Available}
+The most important missing data are Cuba's municipal well records: well IDs, the formation each
+well draws from, pumping volumes, and water-level history, held by the Village of Cuba or the
+State Engineer \citep{nmose}. Every dataset brief identified these records as the missing piece for
+RQ3. Also not obtained were the USGS digital aquifer data for the San Juan Basin
+\citep{usgs_rasa_sjb}, groundwater-quality records such as the Brackish Water Assessment
+\citep{nmbg_bwa}, acequia locations \citep{isc_acequias}, and records from other monitoring
+networks \citep{ngwmn,cgmn}. Section~\ref{sec:limits} describes what their absence means for the
+findings.
 
 % =====================================================================
 \section{Methods}\label{sec:methods}
 % =====================================================================
 \subsection{Data Cleaning}
-Raw downloads are kept unedited in the repository. Each cleaned file is made by a script that
-reads the raw file and writes the cleaned one, so anyone can rerun it and get the same result.
-All cleaned files share the same columns for site ID, site name, latitude, longitude, date, and
-source, with one row per measurement and missing values left blank.
-\draftnote{Data cleaning lead: describe each cleaning step, the decisions made, and the final row
-counts.}
+Cleaning makes the data correct and consistent without drawing conclusions; averaging, trends,
+and narrowing to the Cuba area happen in the analysis. Raw downloads are kept unedited. A MATLAB
+script, \texttt{cleaning/clean\_csvs.m}, reads them and writes the cleaned files
+(Table~\ref{tab:cleaned}), so anyone can rerun it and get the same result. As it runs, it prints
+checks such as row counts, duplicate rows, and the list of formation names.
+
+\begin{table}[t]
+  \caption{Cleaned files produced so far.}
+  \label{tab:cleaned}
+  \footnotesize
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright}p{1.15in}r>{\raggedright\arraybackslash}X@{}}
+    \toprule
+    \textbf{File} & \textbf{Rows} & \textbf{Contents} \\
+    \midrule
+    \nolinkurl{groundwater_levels_monthly.csv} & 2,673 & Monthly mean depth to water at
+      9 wells, June 1998 to September 2026 \\
+    \nolinkurl{aquifer_tests.csv} & 179 & One row per aquifer test in Sandoval County, 1930 to
+      2008, with 17 columns \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsubsection{Shared conventions}
+Every cleaned file starts with the same six columns: site ID, site name, latitude, longitude,
+date, and source. Each has one row per measurement, sorted by site and date. Numbers are stored
+without units or commas, dates are written as \mbox{YYYY-MM-DD}, and column names end with their unit,
+such as \texttt{well\_depth\_ft}. Missing values are left blank rather than filled with
+placeholders such as 0 or $-9999$, which a chart would plot as real values.
+
+\subsubsection{Groundwater levels}
+From the USGS statistics, the script keeps the depth-to-groundwater rows that are monthly means
+and renames the columns to the shared names. Wells with an A or B suffix are kept as separate
+sites, because they share a location but are measured at different depths. The cleaned file was
+checked against the raw data: it has the same rows, dates, and values, with no duplicate
+site-and-date rows.
+
+\subsubsection{Aquifer tests}
+The script keeps all 179 Sandoval County tests, including repeat tests on the same well, and the
+16 raw columns the analysis needs: well construction, formation, water level, pumping rate, and
+hydraulic properties. Empty and administrative columns are dropped. It converts numbers stored as
+text, standardizes dates, and cleans formation names by trimming spaces, converting them to
+uppercase, and fixing a misspelling. Three decisions were needed:
+\begin{itemize}
+  \item One hydraulic conductivity was recorded as a range, 11 to 21 ft/day; the midpoint,
+        16 ft/day, is used.
+  \item 104 tests list January 1, 1900, as the date of the starting water level, meaning the
+        date is unknown, so that column is left out.
+  \item 30 tests are dated January 1, which may mean only the year is known; they are kept as is.
+\end{itemize}
+Many tests are missing values, such as the formation (54 tests) and storativity (165 tests); these
+cells are left blank.
+
+\subsubsection{Open issues}
+Most of the State Engineer's well IDs in the aquifer-test file are incomplete: 157 of the 179 are
+partial, so the cleaned file has 73 site IDs for about 149 distinct wells. The analysis therefore
+tells wells apart by name and location rather than by ID. The Bureau of Geology water levels, the
+Rio Puerco measurements, and the well logs still need cleaning; the first and last of these also
+need their UTM coordinates converted to latitude and longitude.
+\draftnote{Update this paragraph once the remaining files are cleaned.}
 
 \subsection{Analysis}
 The analysis focuses on measurable indicators, such as depth to water, water-level change over
@@ -406,8 +518,10 @@ needed for them were not obtained during the project:
 \section*{Author Contributions}
 \begin{description}[leftmargin=0pt,labelsep=0.4em,itemsep=0pt,font=\normalfont\bfseries]
   \item[P.~Djordjevic:] documentation, final report, presentation, and video.
-  \item[D.~Gonzales:] data acquisition and dataset justification.
-  \item[J.~Wauneka:] data cleaning and preprocessing.
+  \item[D.~Gonzales:] data acquisition: collected seven datasets and wrote a research brief for
+        each, plus a plotting guide comparing them.
+  \item[J.~Wauneka:] data cleaning: wrote the MATLAB script that produces the cleaned
+        groundwater-level and aquifer-test files.
   \item[M.~Watkins:] analysis code and visualizations.
   \item[M.~Yousef:] GitHub workflow and the Streamlit app.
 \end{description}

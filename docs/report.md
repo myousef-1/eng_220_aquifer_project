@@ -12,7 +12,7 @@ The report is written in LaTeX in a two-column format that matches the project p
 
 1. Introduction: background, motivation, and research questions
 2. Study area: Sandoval County and the Cuba focus area
-3. Data: datasets acquired and still to collect
+3. Data: the datasets used, and the data that weren't available
 4. Methods: data cleaning, analysis, how findings are labeled, and the dashboard
 5. Results: groundwater levels, wells and aquifer units, the Cuba case study, and data gaps
 6. Discussion
