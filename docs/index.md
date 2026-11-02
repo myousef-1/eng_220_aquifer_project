@@ -44,7 +44,7 @@ The site follows the project's stages, from collecting data to presenting result
 | [3. Analysis and visualizations](analysis.md) | The methods and charts used to answer each research question |
 | [4. Streamlit app](streamlit-app.md) | What the interactive dashboard shows and how to run it |
 | [5. Final report](report.md) | The written report and the project proposal |
-| [6. Presentation and video](presentation.md) | The presentation slides and the seven-minute team video |
+| [6. Presentation and video](presentation.md) | The in-class presentation slides and each member's video |
 | [Findings](findings.md) | What the data show, and where they are too limited to say |
 | [Timeline](timeline.md) | What was completed at each course checkpoint |
 | [Team](team.md) | Who did what |

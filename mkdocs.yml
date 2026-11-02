@@ -19,3 +19,7 @@ nav:
 
 theme:
   name: cinder
+
+# Draws the Gantt chart on the Timeline page
+extra_javascript:
+  - js/gantt.js
