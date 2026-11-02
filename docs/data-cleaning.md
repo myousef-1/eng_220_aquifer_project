@@ -132,6 +132,6 @@ These raw files aren't cleaned yet. See [Data collection](data-collection.md) fo
 - **NM Bureau of Geology groundwater levels** (dataset 2): convert UTM easting and northing to latitude and longitude, after checking the zone and datum.
 - **Rio Puerco at Cuba** (dataset 4): the streamflow and gage-height measurements.
 - **Wells with well logs** (dataset 7): convert UTM coordinates to latitude and longitude, and trim the extra spaces in well IDs.
-- **Other USGS measurements in dataset 1:** streamflow, reservoir storage, and water quality, one cleaned file per measurement, following the groundwater-levels pattern.
+- **Other USGS measurements in dataset 1:** streamflow and reservoir storage, if the analysis uses them, one cleaned file per measurement, following the groundwater-levels pattern. The stream water-quality measurements don't need cleaning, since the project no longer covers water quality.
 
 Datasets 3, 5, and 6 don't need cleaning: dataset 3 has no locations until its map layer is downloaded, and datasets 5 and 6 are publications rather than data tables.

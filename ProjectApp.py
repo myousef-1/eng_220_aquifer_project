@@ -8,9 +8,7 @@ pg = st.navigation([
     st.Page("app_pages/county_map.py", title="County map", icon=":material/map:"),
     st.Page("app_pages/groundwater.py", title="Groundwater levels", icon=":material/water_drop:"),
     st.Page("app_pages/wells.py", title="Wells and aquifers", icon=":material/layers:"),
-    st.Page("app_pages/water_quality.py", title="Water quality", icon=":material/science:"),
     st.Page("app_pages/cuba.py", title="Cuba case study", icon=":material/location_on:"),
-    st.Page("app_pages/acequias.py", title="Acequias", icon=":material/agriculture:"),
     st.Page("app_pages/data_sources.py", title="Data sources", icon=":material/database:"),
     st.Page("app_pages/sandbox.py", title="Sandbox", icon=":material/construction:"),
 ])

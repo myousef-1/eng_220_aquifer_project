@@ -14,8 +14,8 @@ The report is written in LaTeX in a two-column format that matches the project p
 2. Study area: Sandoval County and the Cuba focus area
 3. Data: datasets acquired and still to collect
 4. Methods: data cleaning, analysis, how findings are labeled, and the dashboard
-5. Results: groundwater levels, wells and aquifer units, the Cuba case study, water quality, acequias, and data gaps
+5. Results: groundwater levels, wells and aquifer units, the Cuba case study, and data gaps
 6. Discussion
-7. Limitations
+7. Limitations, including the proposal questions that were dropped for lack of data
 8. Conclusions
 9. Data and code availability, author contributions, and references

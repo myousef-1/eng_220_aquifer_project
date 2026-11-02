@@ -6,4 +6,4 @@ Results will be added here as the analysis is completed. Following the proposal,
 - **Hypothesis:** a possible explanation the data are consistent with but don't prove.
 - **Insufficient data:** a question the available records can't answer yet.
 
-Sections will cover groundwater levels, wells and aquifer units, the Cuba case study, water quality, acequias and surface water, and data gaps.
+Sections will cover groundwater levels, wells and aquifer units, the Cuba case study, and data gaps.

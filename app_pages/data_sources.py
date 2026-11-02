@@ -18,12 +18,10 @@ st.subheader("Other sources")
 st.markdown(
     """
 - [USGS San Juan Basin digital aquifer data](https://www.sciencebase.gov/catalog/item/5d8e350be4b0c4f70d0cc484)
-- [NM Bureau of Geology: San Juan Basin Brackish Water Assessment](https://geoinfo.nmt.edu/resources/water/projects/bwa/sjb/home.html)
 - [New Mexico Office of the State Engineer](https://www.ose.nm.gov/)
 - [National Ground-Water Monitoring Network](https://www.usgs.gov/apps/ngwmn/index.jsp)
 - [New Mexico Water Data Catalog](https://catalog.newmexicowaterdata.org/)
-- [NM Interstate Stream Commission: Acequias](https://www.ose.nm.gov/Acequias/isc_acequias.php)
 """
 )
 
-st.info("Monitoring coverage and data gaps (research question 8) will be added here.", icon=":material/construction:")
+st.info("Monitoring coverage and data gaps (research question 5) will be added here.", icon=":material/construction:")

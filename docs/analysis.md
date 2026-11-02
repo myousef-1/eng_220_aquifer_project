@@ -6,12 +6,12 @@ This stage answers the [research questions](index.md#research-questions) with an
 
 ## Planned outputs
 
-From the project proposal:
+From the project proposal, updated for the revised research questions:
 
-- A county map of wells, water-level measurements, major aquifer and geologic regions, and acequias
-- A Cuba-area view of the Ojo Alamo Sandstone, San Jose Formation, nearby wells, and their water-level and water-quality records
+- A county map of water-level monitoring wells, aquifer-test wells by formation, and the Rio Puerco stream gage at Cuba
+- A Cuba-area view of the Ojo Alamo Sandstone, San Jose Formation, nearby aquifer-test wells and their hydraulic properties, and Rio Puerco stream measurements
 - Time-series charts for wells with repeated water-level measurements
-- Summary charts comparing well depth, depth to water, aquifer unit, and water quality by area
+- Summary charts comparing well depth, depth to water, and aquifer unit by area
 - A data-coverage view showing where monitoring is dense, sparse, or missing
 
 ## Analyses

@@ -1,14 +1,15 @@
 import streamlit as st
 
 st.title("Beneath the Mesa")
-st.subheader("Assessing Aquifer, Well, and Acequia Water Resources Across Sandoval County, New Mexico")
+st.subheader("Assessing Aquifer and Well Water Resources Across Sandoval County, New Mexico")
 st.caption("ENG 220 · Team 23")
 
 st.write(
     "Sandoval County's communities depend on a mix of groundwater wells, surface water, "
-    "and acequia irrigation systems. This app explores what public data show about those "
-    "water resources across the county, with a closer look at Cuba, New Mexico, on the "
-    "eastern edge of the San Juan Basin."
+    "and acequia irrigation systems. This app focuses on groundwater: it explores what "
+    "public data show about the county's aquifers and wells, with a closer look at Cuba, "
+    "New Mexico, on the eastern edge of the San Juan Basin, and shows where the data are "
+    "too sparse to say."
 )
 
 st.write(
@@ -27,14 +28,11 @@ with col3:
 with st.expander("Research questions"):
     st.markdown(
         """
-1. How do groundwater levels vary across Sandoval County, and which areas show sustained decline, stability, or recovery?
-2. What do well records show about well depth, depth to water, and the aquifer units that communities rely on?
-3. Do the available data support the concern that Cuba's main groundwater source is approaching severe depletion?
-4. How do the Ojo Alamo Sandstone and San Jose Formation compare near Cuba?
-5. How does groundwater quality, including salinity, vary across the county and near Cuba?
-6. Where are acequias located, what surface water do they depend on, and which communities do they serve?
-7. Do changes in groundwater levels line up with nearby surface-water or acequia conditions?
-8. Where is monitoring coverage strong, and where are the most important data gaps?
-9. Which indicators can show water-resource stress without overstating how certain the data are?
+1. How have groundwater levels changed at monitored wells in Sandoval County, and which wells show sustained decline, stability, or recovery?
+2. What do well records show about well depth, depth to water, and the aquifer units that wells in different parts of the county draw from?
+3. What do available records show about groundwater near Cuba, and are they enough to evaluate the concern that its main aquifer is approaching severe depletion?
+4. How do the Ojo Alamo Sandstone and San Jose Formation compare near Cuba in extent, thickness, and hydraulic properties?
+5. Where is monitoring coverage strong, and where are the most important data gaps?
+6. Which indicators can be combined into a dashboard that shows groundwater stress without overstating how certain the data are?
 """
     )

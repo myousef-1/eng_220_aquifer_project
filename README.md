@@ -1,5 +1,5 @@
 # Beneath the Mesa
-### Assessing Aquifer, Well, and Acequia Water Resources Across Sandoval County, New Mexico
+### Assessing Aquifer and Well Water Resources Across Sandoval County, New Mexico
 
 **ENG 220 – Team 23**
 
