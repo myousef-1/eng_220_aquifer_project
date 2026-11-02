@@ -21,7 +21,7 @@ Checkpoint: Three-quarter             | 2026-11-03
 Checkpoint: Final due                 | 2026-11-16
 </div>
 
-Hover over a bar to see its dates.
+Hover over or tap a task to see its dates.
 
 ## First quarter · Mon, Oct 12
 
