@@ -25,7 +25,7 @@ Each member describes their own contributions here.
 
 ### Micah Watkins
 
-*To be written.*
+I wrote the analysis code and made the project's charts. All of it lives in the `analysis/` folder: loaders that bring every dataset into the team's shared column format (including the minimum preparation needed for the datasets that aren't cleaned yet), trend statistics (Sen's slope and the Mann-Kendall test), and one function per chart that returns the figure together with its takeaway, caption, scope, and labeled findings. The same functions feed the Streamlit pages, the report figures, and the documentation, so every number matches. I made 15 charts and figures covering all six research questions, wired them into the app's pages, and wrote a grading rubric from our proposal and Dylan's plotting guide to review and improve the charts. For six of them I also made pictograph versions (well cross-sections, a map of well pictograms sized by transmissivity, river-visit drops, rating balls, and unit charts), following Petar's suggestion, while keeping the plain versions for the report. Details are on the [Analysis and visualizations](analysis.md) page.
 
 ### Meckrem Yousef
 

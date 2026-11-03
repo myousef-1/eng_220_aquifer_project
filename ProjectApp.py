@@ -12,4 +12,8 @@ pg = st.navigation([
     st.Page("app_pages/data_sources.py", title="Data sources", icon=":material/database:"),
     st.Page("app_pages/sandbox.py", title="Sandbox", icon=":material/construction:"),
 ])
+# Chart style for every page: six charts can show small pictograms (wells, gages, river visits,
+# rating balls) instead of plain dots and bars; see analysis/icons.py. Off = the report's plain versions.
+st.sidebar.toggle("Pictograph charts", value=True, key="pictograph",
+                  help="Show pictograms on six charts. Turn off to see the plain versions used in the report.")
 pg.run()

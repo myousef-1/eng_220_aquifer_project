@@ -134,4 +134,6 @@ These raw files aren't cleaned yet. See [Data collection](data-collection.md) fo
 - **Wells with well logs** (dataset 7): convert UTM coordinates to latitude and longitude, and trim the extra spaces in well IDs.
 - **Other USGS measurements in dataset 1:** streamflow and reservoir storage, if the analysis uses them, one cleaned file per measurement, following the groundwater-levels pattern. The stream water-quality measurements don't need cleaning, since the project no longer covers water quality.
 
+Until these are cleaned, the analysis code does the minimum preparation needed to chart them (UTM-to-latitude/longitude conversion, date parsing, and the like) without changing the raw files; the steps are listed on the [Analysis](analysis.md#data-preparation-inside-the-analysis-code) page. When a cleaned file is added here, only the matching loader in `analysis/data.py` needs to change.
+
 Datasets 3, 5, and 6 don't need cleaning: dataset 3 has no locations until its map layer is downloaded, and datasets 5 and 6 are publications rather than data tables.
