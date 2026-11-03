@@ -9,12 +9,12 @@ Team, topic, and roles (all)          | 2026-09-21 | 2026-10-12
 Project proposal (all)                | 2026-10-12 | 2026-10-23
 Data collection (Dylan)               | 2026-10-01 | 2026-10-29
 Data cleaning (James)                 | 2026-10-25 | 2026-11-06
-Analysis and visualizations (Micah)   | 2026-10-30 | 2026-11-10
-Streamlit app (Meckrem)               | 2026-10-15 | 2026-11-14
+Analysis and visualizations (Micah)   | 2026-10-30 | 2026-11-03
+Streamlit app (Meckrem)               | 2026-10-15 | 2026-11-10
 Final report (Petar)                  | 2026-11-03 | 2026-11-14
-Presentation slides (Petar)           | 2026-10-15 | 2026-11-14
+Presentation slides (Petar)           | 2026-10-15 | 2026-11-16
 Documentation site (Petar)            | 2026-10-15 | 2026-11-16
-Individual videos (all)               | 2026-11-09 | 2026-11-15
+Team video (all)                      | 2026-11-09 | 2026-11-16
 Checkpoint: First quarter             | 2026-10-12
 Checkpoint: Midpoint                  | 2026-10-23
 Checkpoint: Three-quarter             | 2026-11-03
@@ -40,8 +40,8 @@ Hover over or tap a task to see its dates.
 
 - Seven datasets gathered, each with a one-page brief from Dylan explaining what it contains, why it was picked, and how to plot it (see [Data collection](data-collection.md))
 - First two datasets cleaned by James, groundwater levels and aquifer tests, with a MATLAB script that anyone can rerun (see [Data cleaning](data-cleaning.md))
-- Analysis code and charts by Micah: 15 charts covering the six research questions, shown on the Streamlit app's pages, in the report, and on this site (see [Analysis and visualizations](analysis.md))
+- Analysis code and charts completed by Micah on Nov 3: 15 charts covering the six research questions, shown on the Streamlit app's pages, in the report, and on this site (see [Analysis and visualizations](analysis.md))
 
 ## Final · Mon, Nov 16
 
-*Upcoming:* Streamlit app, final report, and presentation slides (Nov 14); individual videos (Nov 15); final submission (Nov 16).
+*Upcoming:* Streamlit app (Nov 10); final report (Nov 14); presentation slides and team video, both submitted on Canvas by 12 PM on Nov 16; in-class presentation on the date the Prime Minister picks (Nov 17, 19, or 24, or Dec 1 or 3).
