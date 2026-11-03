@@ -6,4 +6,8 @@ Midpoint deadline is Friday Oct. 23rd
 
 Project due date Monday Nov. 16th
 
+Team video and presentation slides due on Canvas Monday Nov. 16th at 12:00 PM. Late submissions get 0.
+
+In-class presentation Thursday Nov. 19th
+
 Presentation slides: every team member must submit their own copy of the .pptx on Canvas. Group submissions don't count.

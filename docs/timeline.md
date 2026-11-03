@@ -44,4 +44,4 @@ Hover over or tap a task to see its dates.
 
 ## Final · Mon, Nov 16
 
-*Upcoming:* Streamlit app (Nov 10); final report (Nov 14); presentation slides and team video, both submitted on Canvas by 12 PM on Nov 16; in-class presentation on the date the Prime Minister picks (Nov 17, 19, or 24, or Dec 1 or 3).
+*Upcoming:* Streamlit app (Nov 10); final report (Nov 14); presentation slides and team video, both submitted on Canvas by 12 PM on Nov 16; in-class presentation on Thu, Nov 19.

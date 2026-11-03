@@ -76,14 +76,16 @@ The documentation site is built with [MkDocs](https://www.mkdocs.org). Its pages
 ```
 ProjectApp.py        Streamlit app entry point and sidebar menu (do not rename: the live app runs this file)
 app_pages/           One file per page of the Streamlit app
+analysis/            Analysis code: data loaders, trend statistics, and one function per chart (see analysis/README.md)
 requirements.txt     Python packages the live app installs
 mkdocs.yml           Documentation site settings
-data/                Raw datasets as downloaded (never edited)
+data/                Raw datasets as downloaded (never edited), plus the county outline used on the maps
 data/clean/          Cleaned datasets, made by the scripts in cleaning/
-cleaning/            Data cleaning scripts
+cleaning/            Data cleaning scripts (MATLAB)
 docs/                Documentation site pages (MkDocs)
-docs/files/          Presentation slides, report PDF, and other downloads
-report/              Final report LaTeX source (see report/README.md)
+docs/figures/        Chart images for the documentation site, made by analysis/export_figures.py
+docs/files/          Presentation slides, report PDF, dataset briefs, and other downloads
+report/              Final report LaTeX source and figures (see report/README.md)
 project_notes/       Proposal, deadlines, and notes
 .devcontainer/       Codespaces setup
 ```
@@ -101,14 +103,36 @@ st.Page("app_pages/my_page.py", title="My page", icon=":material/insights:"),
 
 Icons are optional. Any name from [Google's Material Symbols](https://fonts.google.com/icons) works.
 
-## Loading Data in the App
+## Showing Charts and Data in the App
 
-Build file paths from the file's location so they work in Codespaces, on your computer, and on the live app. Pages live one folder down in `app_pages/`, so go up one level to reach `data/`. Load the cleaned files in `data/clean/`, not the raw downloads:
+Every chart is a function in `analysis/charts.py`, and every dataset is loaded by a function in `analysis/data.py`, so the app, the report, and the documentation site show the same numbers. On a page, show a chart with `show_chart`, which adds its takeaway, caption, labeled findings, and a downloadable data table:
 
 ```python
-from pathlib import Path
-import pandas as pd
+from analysis import charts
+from analysis.st_helpers import show_chart
 
-DATA = Path(__file__).resolve().parents[1] / "data" / "clean"
-levels = pd.read_csv(DATA / "groundwater_levels_monthly.csv")
+show_chart(charts.groundwater_hydrographs)
 ```
+
+To work with a dataset directly, call its loader instead of reading the CSV yourself. The loaders return the shared columns (`site_id`, `site_name`, `latitude`, `longitude`, `date`, `source`) and find the files from their own location, so they work in Codespaces, on your computer, and on the live app:
+
+```python
+from analysis import data
+
+levels = data.load_groundwater_levels()   # data/clean/groundwater_levels_monthly.csv
+tests = data.load_aquifer_tests()         # data/clean/aquifer_tests.csv
+```
+
+When James adds a newly cleaned file, only the matching loader in `analysis/data.py` changes; the charts and pages stay the same. See `analysis/README.md` for the full list.
+
+## Updating the Charts
+
+After changing a chart in `analysis/charts.py`, remake the images for the report and documentation site, and the generated parts of the Analysis and Findings pages. From the repository root:
+
+```
+pip install kaleido
+python -m analysis.export_figures
+python -m analysis.write_docs
+```
+
+Don't edit the blocks between the `BEGIN GENERATED` and `END GENERATED` markers in `docs/analysis.md` and `docs/findings.md` by hand; `write_docs` rewrites them. Then publish the documentation site as described above.

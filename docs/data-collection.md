@@ -103,9 +103,9 @@ Drilling records for 6 wells in Sandoval County, drilled between 1978 and 2022, 
 ### Other raw data in the repository
 
 **`ose_aquifer_test_wells.csv`:** New Mexico Office of the State Engineer aquifer-test records, 3,455 statewide and 179 in Sandoval County, including well depth, screened interval, geologic formation, and hydraulic properties such as transmissivity and storativity. It's cleaned into `data/clean/aquifer_tests.csv` (see [Data cleaning](data-cleaning.md)).<br>
-**Source:** *To be added: link to the page this file was downloaded from.*
+**Source:** [NM Office of the State Engineer, Hydrology Bureau: Aquifer Test Index](https://www.ose.nm.gov/Hydrology/aquifer.php) (CSV export; added by Meckrem)
 
-**`water_flow_data_sandoval_county_sources.csv`:** an identical copy of dataset 1. The cleaning script reads this copy.
+**`water_flow_data_sandoval_county_sources.csv`:** an identical copy of dataset 1. The cleaning script and the analysis code read this copy.
 
 **`sandoval_county_boundary.geojson`:** a simplified Sandoval County outline used as map context in the app and figures.<br>
 **Source:** US Census Bureau 2010 cartographic boundary file, as redistributed in [plotly/datasets `geojson-counties-fips.json`](https://github.com/plotly/datasets/blob/master/geojson-counties-fips.json) (FIPS 35043). A more detailed boundary wasn't collected (see below).

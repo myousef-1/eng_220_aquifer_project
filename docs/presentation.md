@@ -42,4 +42,4 @@ The Prime Minister submits one recorded video of the team's presentation on Canv
 
 ## In-class presentation
 
-The team presents the slides in class on the day the Prime Minister picks with the course form: Nov 17, 19, or 24, or Dec 1 or 3.
+The team presents the slides in class on **Thu, Nov 19**.

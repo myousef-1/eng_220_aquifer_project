@@ -6,9 +6,10 @@ LaTeX source for the project report, styled to match the project proposal (two c
 |---|---|
 | `report.tex` | The report |
 | `references.bib` | Bibliography (BibTeX) |
-| `figures/` | Figures used in the report |
+| `figures/` | Chart images made by `analysis/export_figures.py`: plain PDFs for the report, PNGs with titles for slides |
+| `analysis_figures.tex` | A ready-made figure block for every chart, also made by `export_figures.py` |
 
-The report is currently a rough-draft template. Orange notes in brackets mark text still to be written, and dashed boxes mark figures still to be made.
+The report is a rough draft. Orange notes in brackets mark text still to be written.
 
 ## Editing and building
 
@@ -22,13 +23,18 @@ latexmk -pdf report.tex
 
 ## Adding a figure
 
-Save the figure in `figures/` (PDF or PNG), then in `report.tex` replace the figure's `\figplaceholder[...]{...}` line with:
+The charts come from `analysis/charts.py`. Running `python -m analysis.export_figures` from the repository root (see the main README) remakes `figures/` and `analysis_figures.tex`. To add a chart to the report, copy its block from `analysis_figures.tex` into `report.tex` and shorten the caption. Use `figure*` for a chart across both columns; most charts are too detailed to read at single-column width.
+
+For an image that isn't a chart, save it in `figures/` and add:
 
 ```latex
-\includegraphics[width=\linewidth]{your-figure-name}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{your-figure-name}
+  \caption{What it shows. Source.}
+  \label{fig:your-label}
+\end{figure*}
 ```
-
-Then write its caption in the `\caption{...}` line below it.
 
 ## Switches
 
