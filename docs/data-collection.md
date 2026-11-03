@@ -107,6 +107,9 @@ Drilling records for 6 wells in Sandoval County, drilled between 1978 and 2022, 
 
 **`water_flow_data_sandoval_county_sources.csv`:** an identical copy of dataset 1. The cleaning script reads this copy.
 
+**`sandoval_county_boundary.geojson`:** a simplified Sandoval County outline used as map context in the app and figures.<br>
+**Source:** US Census Bureau 2010 cartographic boundary file, as redistributed in [plotly/datasets `geojson-counties-fips.json`](https://github.com/plotly/datasets/blob/master/geojson-counties-fips.json) (FIPS 35043). A more detailed boundary wasn't collected (see below).
+
 ## Not collected
 
 These sources were identified in the proposal but weren't collected during the project. The report's Limitations section explains what their absence means for the findings.
@@ -118,7 +121,7 @@ These sources were identified in the proposal but weren't collected during the p
 - **Acequias:** locations and service areas of acequias and community ditches from the NM Interstate Stream Commission. Without them, the proposal's questions on acequias and on links between groundwater and surface water were dropped.
 - **More water-level records:** National Ground-Water Monitoring Network and Healy Collaborative Groundwater Monitoring Network data.
 - **Shallow groundwater depth:** the [mean annual depth to groundwater for the shallow riparian aquifer](https://catalog.newmexicowaterdata.org/dataset/mean-annual-depth-to-groundwater-for-the-shallow-riparian-aquifer) dataset.
-- **County boundary:** a Sandoval County boundary layer to organize the maps.
+- **County boundary:** a detailed Sandoval County boundary layer. The maps use the simplified US Census outline above instead.
 
 ## Sources
 

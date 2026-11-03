@@ -1,0 +1,1212 @@
+diff --git a/analysis/charts.py b/analysis/charts.py
+index a6015ff..33607c1 100644
+--- a/analysis/charts.py
++++ b/analysis/charts.py
+@@ -35,6 +35,7 @@ Rules every chart follows (from the proposal and Dylan's plotting guide)
+ 
+ from __future__ import annotations
+ 
++import re
+ import textwrap
+ from dataclasses import dataclass
+ from datetime import date
+@@ -97,8 +98,9 @@ class Chart:
+     data: pd.DataFrame
+     source: str
+     height: int = 520
++    export_width: int = 1000
+ 
+-    def static(self, width: int = 1000, with_text: bool = True) -> go.Figure:
++    def static(self, width: int | None = None, with_text: bool = True) -> go.Figure:
+         """A copy of the figure for images, always in the light theme.
+ 
+         ``with_text=True`` bakes in the title, subtitle, scope, and source (for the
+@@ -106,6 +108,7 @@ class Chart:
+         where the caption is written in LaTeX. Text wrapping is computed from
+         ``width``, so other widths don't clip."""
+         p = palette(False)
++        width = width or self.export_width
+         fig = go.Figure(self.fig)
+         if not with_text:
+             fig.update_layout(template=template_name(False), width=width, height=self.height, font=dict(size=15))
+@@ -167,8 +170,23 @@ def _sig(v: float, n: int = 3) -> str:
+     return out.rstrip("0").rstrip(".") if "." in out else out
+ 
+ 
++_UNIT_RE = re.compile(r"(\d) (ft|km|µS/cm|ft³/s|ft²/day|wells|sites|visits|years|tests)\b")
++
++
+ def _wrap(text: str, width: int) -> str:
+-    return "<br>".join(textwrap.wrap(text, width=width, break_on_hyphens=False)) if text else ""
++    """Wrap text for Plotly titles: never split a number from its unit, and rebalance
++    lines so the last one isn't a single orphan word."""
++    if not text:
++        return ""
++    text = _UNIT_RE.sub(lambda m: f"{m.group(1)}\u00a0{m.group(2)}", text)  # non-breaking space
++    lines = textwrap.wrap(text, width=width, break_on_hyphens=False)
++    if len(lines) > 1 and len(lines[-1]) < 0.3 * width:
++        for w in range(width - 1, int(width * 0.7), -1):
++            trial = textwrap.wrap(text, width=w, break_on_hyphens=False)
++            if len(trial) == len(lines) and len(trial[-1]) >= 0.3 * width:
++                lines = trial
++                break
++    return "<br>".join(lines)
+ 
+ 
+ def _ring(dark: bool) -> dict:
+@@ -247,7 +265,7 @@ def _well_style(dark: bool) -> dict:
+     return {
+         "Well": dict(color=p["blue"], dash="solid"),
+         "Well A": dict(color=p["blue_dark"], dash="dash"),
+-        "Well B": dict(color=p["blue_light"], dash="solid"),
++        "Well B": dict(color=p["blue_light"], dash="dot"),
+     }
+ 
+ 
+@@ -311,8 +329,8 @@ def groundwater_hydrographs(dark: bool = False) -> Chart:
+     fig.update_yaxes(title_text="Depth to water (ft)", col=1)
+     _left_align_titles(fig, p["ink2"])
+     _base_layout(fig, dark, 600, hovermode="closest",
+-                 legend=dict(title_text="Same location, different depths:  ", y=1.13),
+-                 margin=dict(t=95, l=80))
++                 legend=dict(title_text="Same location, different depths:  ", y=1.09),
++                 margin=dict(t=78, l=80))
+ 
+     data = gw[["site_id", "site_name", "site_group", "well", "latitude", "longitude", "date", "depth_to_water_ft"]]
+     title = (f"{n_fall} of {n_wells} monitored wells fell over their records and {n_rise} rose; the Sandia site "
+@@ -425,6 +443,8 @@ def groundwater_trends(dark: bool = False, recent_start: int = 2016, recent_end:
+     _base_layout(fig, dark, 540, legend=dict(y=1.04), margin=dict(l=280, t=60))
+ 
+     rec = recent.dropna(subset=["level_slope_ft_per_yr"])
++    narrow = sorted({f"{r_['row']} ({r_['period'].lower()})" for _, r_ in tbl.iterrows()
++                     if pd.notna(r_["ci_low"]) and (r_["ci_high"] - r_["ci_low"]) < 0.035})
+     falling_recent = [s for s in SITE_ORDER if s in set(rec.loc[rec["trend"] == "Declining", "site_group"])]
+     rising_recent = [s for s in SITE_ORDER if s in set(rec.loc[rec["trend"] == "Rising", "site_group"])]
+     flat_recent = [s for s in SITE_ORDER if s in set(rec.loc[rec["trend"] == "No clear trend", "site_group"])]
+@@ -449,7 +469,10 @@ def groundwater_trends(dark: bool = False, recent_start: int = 2016, recent_end:
+         title=title,
+         subtitle=(f"Sen's slope of annual mean water level per well: whole record (circles) vs {rec_label} "
+                   "(diamonds); whiskers = 95% interval; gray years = each well's record"),
+-        caption=("Trend = Sen's slope of annual means (years with at least 9 months of data). Sen's slope assumes "
++        caption=(f"Trend = Sen's slope of annual means (years with at least {st_.MIN_MONTHS_PER_YEAR} months of data). "
++                 f"The {rec_label} window has only {int(rec['n_years'].min())}-{int(rec['n_years'].max())} years per well. "
++                 + (f"Intervals narrower than the marker: {', '.join(narrow)}. " if narrow else "") +
++                 "Sen's slope assumes "
+                  "one direction, so a record that fell and then rose, like the Sandia site (see the hydrographs), "
+                  "gets one average slope. Color shows the "
+                  "Mann-Kendall test: red = falling, blue = rising, gray = no clear trend (p ≥ 0.05). Sign is "
+@@ -512,9 +535,12 @@ def placitas_remeasured(dark: bool = False) -> Chart:
+                                  f"{f'; {e_lab} range {r_.range_early:.0f} ft' if r_['count_early'] > 1 else ''}</span>"),
+                            showarrow=False, font=dict(size=12.5, color=p["ink2"]))
+     for per, lab, col in [("early", e_lab, c_old), ("late", l_lab, c_new)]:
++        # the early average is a hollow ring one size larger, so it shows even when the later dot sits on it
++        marker = (dict(size=MARKER_SIZE + 7, color="rgba(0,0,0,0)", line=dict(width=2.5, color=col)) if per == "early"
++                  else dict(size=MARKER_SIZE + 2, color=col, line=_ring(dark)))
+         fig.add_trace(go.Scatter(
+             x=agg[f"mean_{per}"], y=list(range(len(rows))), mode="markers", name=f"Average, {lab}",
+-            marker=dict(size=MARKER_SIZE + 3, color=col, line=_ring(dark)),
++            marker=marker,
+             customdata=np.column_stack([agg.index, agg[f"count_{per}"], agg[f"min_{per}"], agg[f"max_{per}"],
+                                         agg["well_depth_ft"].fillna(-1)]),
+             hovertemplate=("<b>%{customdata[0]}</b> (well %{customdata[4]:.0f} ft deep)<br>" + lab +
+@@ -525,17 +551,19 @@ def placitas_remeasured(dark: bool = False) -> Chart:
+     fig.update_xaxes(title_text="Depth to water (ft below land surface)  →  deeper", rangemode="tozero",
+                      range=[0, agg[["max_early", "mean_late"]].max().max() * 1.6])
+     if any("†" in r for r in rows):
+-        fig.add_annotation(x=1, y=0, xref="paper", yref="paper", xanchor="right", yanchor="bottom", showarrow=False,
++        fig.add_annotation(x=1, y=1, xref="paper", yref="paper", xanchor="right", yanchor="bottom", showarrow=False,
+                            text=f"† a {e_lab} reading was flagged R (recently pumped)",
+                            font=dict(size=11.5, color=p["muted"]))
+-    _base_layout(fig, dark, 400, margin=dict(l=90, t=60))
++    _base_layout(fig, dark, 400, margin=dict(l=90, t=70))
+ 
+     n = len(agg)
+     small = int((agg["change_ft"].abs() <= 5).sum())
+     big, rec = agg.loc[agg["change_ft"].idxmax()], agg.loc[agg["change_ft"].idxmin()]
+     dist = _km_range(agg["latitude"], agg["longitude"])
+-    title = (f"Of {n} Placitas wells measured in {e_lab} and {l_lab}, {small} changed ≤5 ft; {big.name} is "
+-             f"{big['change_ft']:.0f} ft deeper and {rec.name} {abs(rec['change_ft']):.0f} ft shallower (unstable baseline)")
++    small_flag = int(((agg["change_ft"].abs() <= 5) & (agg["early_readings_flagged_R"] > 0)).sum())
++    title = (f"Of {n} Placitas wells measured in {e_lab} and {l_lab}, {small} changed ≤5 ft ({small_flag} with flagged "
++             f"baselines); {big.name} is {big['change_ft']:.0f} ft deeper, and {rec.name} is {abs(rec['change_ft']):.0f} ft "
++             "shallower from an unstable 1990s baseline")
+     findings = [
+         ("Measured", f"{small} of {n} re-measured wells are within 5 ft of their {e_lab} average."),
+         ("Measured", f"{big.name} is {big['change_ft']:.0f} ft deeper than in {e_lab} (well {big['well_depth_ft']:.0f} ft deep; "
+@@ -652,7 +680,7 @@ def well_depth_vs_water(dark: bool = False, max_depth_ft: float = 1300) -> Chart
+     fig.add_trace(go.Scatter(x=[0, max_depth_ft], y=[0, max_depth_ft], mode="lines",
+                              line=dict(color=p["axis"], width=1.5), hoverinfo="skip", showlegend=False))
+     # horizontal label with a pointer, so it reads correctly at any chart width
+-    fig.add_annotation(x=ymax * 0.8, y=ymax * 0.8, ax=70, ay=-18, text="water level at the bottom of the well",
++    fig.add_annotation(x=ymax * 0.55, y=ymax * 0.55, ax=95, ay=35, text="water level at the bottom of the well",
+                        showarrow=True, arrowhead=0, arrowwidth=1, arrowcolor=p["muted"], xanchor="left",
+                        font=dict(size=12, color=p["muted"]))
+     fig.add_annotation(x=max_depth_ft * 0.72, y=ymax * 0.22, text="more water above the well bottom ↑",
+@@ -670,7 +698,7 @@ def well_depth_vs_water(dark: bool = False, max_depth_ft: float = 1300) -> Chart
+                            "<br>%{customdata[2]:,.0f} ft of water column · %{customdata[1]}<extra></extra>"),
+         ))
+     fig.update_xaxes(title_text="Well (or borehole) depth, ft", range=[0, max_depth_ft], tickformat=",")
+-    fig.update_yaxes(title_text="Depth to water, ft below land", range=[ymax, -40], tickformat=",")
++    fig.update_yaxes(title_text="Depth to water (ft below land, deeper ↓)", range=[ymax, -40], tickformat=",")
+     if len(off):
+         fig.add_annotation(x=1, y=0, xref="paper", yref="paper", xanchor="right", yanchor="bottom",
+                            text=f"{len(off)} wells deeper than {max_depth_ft:,.0f} ft are off the chart (see table)",
+@@ -681,9 +709,8 @@ def well_depth_vs_water(dark: bool = False, max_depth_ft: float = 1300) -> Chart
+     rhos = {k: st_.spearman(g["well_depth_ft"], g["depth_to_water_ft"]) for k, g in allw.groupby("record_type") if len(g) >= 10}
+     pooled = st_.spearman(allw["well_depth_ft"], allw["depth_to_water_ft"])
+     q1, q3 = allw["depth_to_water_ft"].quantile([0.25, 0.75])
+-    title = (f"Where water is deeper, wells are drilled deeper (Spearman ρ = {min(rhos.values()):.2f}-"
+-             f"{max(rhos.values()):.2f} within each record type), but the spread is wide: half of {len(allw)} wells "
+-             f"have water between {q1:.0f} and {q3:.0f} ft down")
++    title = (f"Where water is deeper, wells are drilled deeper (ρ = {min(rhos.values()):.2f}-{max(rhos.values()):.2f} "
++             f"within the {len(rhos)} larger record types), but half of {len(allw)} wells have water {q1:.0f}-{q3:.0f} ft down")
+     findings = [
+         ("Measured", "Median depth to water by record type: " + "; ".join(
+             f"{k.split(',')[0]} {v['median_dtw']:.0f} ft (n={int(v['n'])})" for k, v in per.iterrows()) + "."),
+@@ -702,8 +729,7 @@ def well_depth_vs_water(dark: bool = False, max_depth_ft: float = 1300) -> Chart
+     return Chart(
+         key="well_depth_vs_water",
+         title=title,
+-        subtitle=(f"One point per well: well depth vs depth to water, from three record types, {_years(allw['year'])} "
+-                  "(axis flipped: deeper water is lower)"),
++        subtitle=f"One point per well: well depth vs depth to water, from three record types, {_years(allw['year'])}",
+         caption=("Points far above the diagonal have a lot of water standing above the well bottom; points near it "
+                  "have little. Colors follow the project's data types (blue = water-level records, orange = well "
+                  "construction and tests). The three sources measure water differently (a 1997-2019 measurement, "
+@@ -727,13 +753,15 @@ def depth_by_area(dark: bool = False) -> Chart:
+     order = (allw.groupby("area")["depth_to_water_ft"].median().sort_values().index.tolist())
+     counts = allw.groupby("area").size()
+     rng = np.random.default_rng(220)
+-    allw["y"] = allw["area"].map({a: i for i, a in enumerate(order)}) + rng.uniform(-0.2, 0.2, len(allw))
++    spread = allw["area"].map(lambda a: 0.36 if counts[a] > 50 else 0.2)  # wider jitter for crowded rows
++    allw["y"] = allw["area"].map({a: i for i, a in enumerate(order)}) + rng.uniform(-1, 1, len(allw)) * spread
+     fig = go.Figure()
+-    for label, (slot, sym) in RECORD_STYLE.items():
++    for label in ["OSE aquifer tests, level at test", "OSE well logs, water first found", "NMBGMR wells, median reading"]:
++        slot, sym = RECORD_STYLE[label]  # NMBGMR drawn last so the shallow wells aren't hidden
+         s = allw[allw["record_type"] == label]
+         fig.add_trace(go.Scatter(
+-            x=s["depth_to_water_ft"], y=s["y"], mode="markers", name=label,
+-            marker=dict(size=MARKER_SIZE, color=p[slot], symbol=sym, opacity=0.85,
++            x=s["depth_to_water_ft"], y=s["y"], mode="markers", name=label, legendrank=list(RECORD_STYLE).index(label),
++            marker=dict(size=MARKER_SIZE - 1, color=p[slot], symbol=sym, opacity=0.75,
+                         line=dict(width=2, color=p[slot]) if "open" in sym else _ring(dark)),
+             customdata=np.column_stack([s["name"], s["area"], s["well_depth_ft"].map(lambda v: f"{v:,.0f} ft" if pd.notna(v) else "not recorded"),
+                                         s["note"]]),
+@@ -755,12 +783,16 @@ def depth_by_area(dark: bool = False) -> Chart:
+     dg = allw[allw["area"] == deep]
+     n_tests_deep = int((dg["record_type"] == "OSE aquifer tests, level at test").sum())
+     cuba = allw[allw["area"] == CUBA_GROUP]
+-    title = (f"Among recorded wells, depth to water was smallest around {shallow} (median {med[shallow]:.0f} ft) and "
+-             f"largest around {deep} (median {med[deep]:.0f} ft; {n_tests_deep} of {len(dg)} are aquifer tests from "
+-             f"{_years(dg.loc[dg['record_type'].str.startswith('OSE aquifer'), 'year'])})")
++    title = (f"Depth to water was smallest around {shallow} (median {med[shallow]:.0f} ft) and largest around {deep} "
++             f"({med[deep]:.0f} ft; {n_tests_deep} of {len(dg)} are {_years(dg.loc[dg['record_type'].str.startswith('OSE aquifer'), 'year'])} "
++             "aquifer tests)")
++    cuba_dups = int(cuba.assign(la=cuba["latitude"].round(4), lo=cuba["longitude"].round(4))
++                    .duplicated(subset=["la", "lo"]).sum())
+     findings = [
+         ("Measured", "Median depth to water by area (areas with ≥5 wells): " + "; ".join(f"{a} {med[a]:.0f} ft" for a in big) + "."),
+-        ("Measured", f"Cuba area: {len(cuba)} wells with a recorded level, {cuba['depth_to_water_ft'].min():.0f}-"
++        ("Measured", f"Cuba area: {len(cuba)} well records with a level"
++                     + (f" ({cuba_dups} pair{'s' if cuba_dups != 1 else ''} at the same spot may be one well)" if cuba_dups else "")
++                     + f", {cuba['depth_to_water_ft'].min():.0f}-"
+                      f"{cuba['depth_to_water_ft'].max():.0f} ft to water, all recorded {_years(cuba['year'])}."),
+         ("Insufficient data", "Areas mix record types and decades; differences may reflect different aquifers, "
+                               "land elevations, and dates, not just place."),
+@@ -770,10 +802,12 @@ def depth_by_area(dark: bool = False) -> Chart:
+         title=title,
+         subtitle=(f"Depth to water for each well with a recorded level, {_years(allw['year'])}, grouped by the nearest town; "
+                   "black tick = area median"),
+-        caption=(f"Areas are a simple screening grouping: each well goes to the nearest of seven towns within "
++        caption=(f"Areas are a simple screening grouping: each well goes to the nearest of "
++                 f"{sum(len(t) for t in AREA_ANCHORS.values())} towns within "
+                  f"{AREA_RADIUS_KM} km ({CUBA_RADIUS_KM} km for Cuba, to match the project's Cuba area), otherwise "
+                  "'Elsewhere in county'. They are not hydrogeologic regions. One point per well, including wells "
+-                 "without a recorded well depth; medians are shown only where an area has at least 5 wells. "
++                 "without a recorded well depth; medians are shown only where an area has at least 5 wells. Values "
++                 "below 0 are flowing wells (water above land surface). "
+                  f"{len(unmapped)} well{'s' if len(unmapped) != 1 else ''} without a usable location "
+                  f"{'are' if len(unmapped) != 1 else 'is'} left out."),
+         scope=SCOPE_COUNTY_ALL,
+@@ -880,12 +914,14 @@ def formation_properties(metric: str = "transmissivity_drawdown_ft2_per_day", da
+     top, bottom = withm["median"].idxmax(), withm["median"].idxmin()
+     short = label.split(",")[0]  # "Transmissivity, drawdown method" -> "Transmissivity" for the headline
+     if logx:
+-        within = sub.groupby("formation_short")[metric].agg(lambda v: np.log10(v.max() / v.min()))
++        within = (sub[sub["formation_short"].isin(withm.index)].groupby("formation_short")[metric]
++                  .agg(lambda v: np.log10(v.max() / v.min())))
+         widest = within.idxmax()
+         between = np.log10(withm["median"].max() / withm["median"].min())
+-        if within.max() > between:
+-            title = (f"{short} varies more within formations than between them: {widest} values span "
+-                     f"{within.max():.1f} orders of magnitude, formation medians only {between:.1f}")
++        n_more = int((within > between).sum())
++        if n_more:
++            title = (f"{short}: within {n_more} of {len(within)} formations, values span more than the "
++                     f"{between:.1f}-order spread between formation medians (up to {within.max():.1f} orders, {widest})")
+         else:
+             title = (f"{short}: formation medians span {between:.1f} orders of magnitude, from {_sig(withm['median'].min())} "
+                      f"({bottom}) to {_sig(withm['median'].max())} {unit} ({top})")
+@@ -896,10 +932,10 @@ def formation_properties(metric: str = "transmissivity_drawdown_ft2_per_day", da
+     if len(oa):
+         oa_med = oa.median()
+         inside = q25 <= oa_med <= q75
+-        oa_find = ("Measured", f"Ojo Alamo: median of {len(oa)} wells {_sig(oa_med)} {unit}, "
+-                   + (f"inside the middle half of all tested wells ({_sig(q25)}-{_sig(q75)}); too few wells to say it differs."
+-                      if inside or len(oa) < 5 else
+-                      f"{'below' if oa_med < q25 else 'above'} the middle half of all tested wells ({_sig(q25)}-{_sig(q75)})."))
++        where = "inside" if inside else ("below" if oa_med < q25 else "above")
++        oa_find = ("Measured", f"Ojo Alamo: median of {len(oa)} wells {_sig(oa_med)} {unit}, {where} the middle half of "
++                   f"all tested wells ({_sig(q25)}-{_sig(q75)})"
++                   + (f"; with {len(oa)} wells, too few to say it differs." if len(oa) < 5 else "."))
+     else:
+         oa_find = ("Insufficient data", "No Ojo Alamo test recorded this measurement.")
+     findings = [
+@@ -923,9 +959,9 @@ def formation_properties(metric: str = "transmissivity_drawdown_ft2_per_day", da
+         caption=(f"{meaning} Each dot is one reported value; a well tested more than once (or reported on two rows "
+                  f"for the same day) has more than one dot, so the gray label counts values and wells. Medians are "
+                  f"taken per well first, so a well tested twice counts once, and are drawn only for formations with "
+-                 f"at least {min_wells} tested wells. Tests without a recorded formation "
+-                 f"({int(tests['formation_short'].isna().sum())} of {len(tests)} rows) count only in the all-wells "
+-                 f"median. Tests span {_years(tests['year'])}."),
++                 f"at least {min_wells} tested wells. Wells without a recorded formation "
++                 f"({len(per_well_all) - per_well['well_key'].nunique()} of the {len(per_well_all)} wells with a value) "
++                 f"count only in the all-wells median. Tests span {_years(tests['year'])}."),
+         scope=SCOPE_COUNTY_ALL,
+         rqs=(2, 4),
+         findings=findings,
+@@ -995,9 +1031,6 @@ def county_coverage_map(dark: bool = False, basemap: str | None = None, split_lo
+     pts = d.load_monitoring_points().dropna(subset=["latitude"])
+     fig = go.Figure()
+     pts["inside_county"] = d.in_county(pts["latitude"], pts["longitude"])
+-    _town_traces(fig, dark, {"Cuba": "top right", "Jemez Springs": "middle right", "San Ysidro": "middle left",
+-                             "Cochiti": "top left", "Bernalillo": "top center", "Placitas": "bottom right",
+-                             "Rio Rancho": "bottom left"})
+     # 25 km scale bar in the empty southwest corner of the county
+     bar_lat, bar_lon0 = 35.42, -107.15
+     bar_lon1 = bar_lon0 + 25 / (111.32 * np.cos(np.radians(bar_lat)))
+@@ -1011,6 +1044,9 @@ def county_coverage_map(dark: bool = False, basemap: str | None = None, split_lo
+                                 textposition="middle right", marker=dict(size=1, opacity=0),
+                                 textfont=dict(size=11.5, color=p["ink2"]), hoverinfo="skip", showlegend=False))
+     _map_points_traces(fig, pts, dark, size=8)
++    _town_traces(fig, dark, {"Cuba": "top right", "Jemez Springs": "middle right", "San Ysidro": "middle left",
++                             "Cochiti": "top left", "Bernalillo": "top center", "Placitas": "bottom right",
++                             "Rio Rancho": "bottom left"})
+     _map_layout(fig, dark, center=dict(lat=35.70, lon=-106.93), zoom=8.1, basemap=basemap, height=660)
+ 
+     near = pts[pts["distance_from_cuba_km"] <= CUBA_RADIUS_KM]
+@@ -1049,6 +1085,7 @@ def county_coverage_map(dark: bool = False, basemap: str | None = None, split_lo
+         data=pts.round(4),
+         source=ALL_SOURCES,
+         height=660,
++        export_width=820,
+     )
+ 
+ 
+@@ -1062,17 +1099,17 @@ def cuba_area_map(dark: bool = False, basemap: str | None = None, radius_km: flo
+     allpts = d.load_monitoring_points().dropna(subset=["latitude"])
+     pts = allpts[allpts["distance_from_cuba_km"] <= radius_km]
+     fig = go.Figure()
+-    _town_traces(fig, dark, {"Cuba": "top left", "San Ysidro": "middle left", "Jemez Springs": "bottom right"})
+     for rk in (10, CUBA_RADIUS_KM, 50):
+         la, lo = _circle(d.CUBA["latitude"], d.CUBA["longitude"], rk)
+         fig.add_trace(go.Scattermap(lat=la, lon=lo, mode="lines", line=dict(color=p["muted"], width=1),
+                                     hoverinfo="skip", showlegend=False))
+         lab_la, lab_lo = _circle(d.CUBA["latitude"], d.CUBA["longitude"], rk, n=9)  # 45° steps
+         # (markers+text with an invisible marker: plain "text" mode fails in static export)
+-        fig.add_trace(go.Scattermap(lat=[lab_la[3]], lon=[lab_lo[3]], mode="markers+text", text=[f"{rk} km"],
+-                                    marker=dict(size=1, opacity=0), textposition="bottom right",
++        fig.add_trace(go.Scattermap(lat=[lab_la[1]], lon=[lab_lo[1]], mode="markers+text", text=[f"{rk} km"],
++                                    marker=dict(size=1, opacity=0), textposition="top right",
+                                     textfont=dict(size=12, color=p["ink2"]), hoverinfo="skip", showlegend=False))
+     _map_points_traces(fig, pts, dark, size=11)
++    _town_traces(fig, dark, {"Cuba": "bottom left", "San Ysidro": "middle left", "Jemez Springs": "bottom right"})
+     _map_layout(fig, dark, center=dict(lat=d.CUBA["latitude"] - 0.05, lon=d.CUBA["longitude"] + 0.03),
+                 zoom=7.95, basemap=basemap, height=620)
+ 
+@@ -1084,14 +1121,17 @@ def cuba_area_map(dark: bool = False, basemap: str | None = None, radius_km: flo
+     nr = _nearest_repeated_wl(allpts)
+     logs = inner[inner["dataset"] == "OSE well logs"]
+     gages = inner[inner["data_type"] == "Surface-water stations"]
++    same_spot = int(tests.assign(la=tests["latitude"].round(4), lo=tests["longitude"].round(4))
++                    .duplicated(subset=["la", "lo"]).sum())
+     title = (f"Within {CUBA_RADIUS_KM} km of Cuba: {len(tests)} wells with one-time aquifer tests ({_years(tests['first_year'])}), "
+              f"{len(logs)} well log{'s' if len(logs) != 1 else ''}, and {len(gages)} stream gage{'s' if len(gages) != 1 else ''}; "
+              "no well there is measured repeatedly")
+     findings = [
+         ("Measured", f"{t_inner['well_key'].nunique()} of the tested wells within {CUBA_RADIUS_KM} km had a one-time depth "
+                      f"to water recorded during their test ({_years(t_inner['year'])}), e.g. {first['depth_to_water_ft']:.0f} ft at "
+-                     f"{first['distance_from_cuba_km']:.1f} km in {int(first['year'])}. Two of the well names may be "
+-                     "the same well (same location and depth)."),
++                     f"{first['distance_from_cuba_km']:.1f} km in {int(first['year'])}."
++                     + (f" {same_spot} pair{'s' if same_spot != 1 else ''} of well records share a location and may be "
++                        "one well." if same_spot else "")),
+         ("Measured", f"The nearest well with repeated water-level measurements is {nr['distance_from_cuba_km']:.0f} km "
+                      f"away ({nr['name']}, {nr['n_records']} readings in {_years([nr['first_year'], nr['last_year']])})."),
+         ("Insufficient data", "Without repeated water levels near Cuba, the data can't confirm or rule out severe "
+@@ -1111,7 +1151,8 @@ def cuba_area_map(dark: bool = False, basemap: str | None = None, radius_km: flo
+         fig=fig,
+         data=pts.sort_values("distance_from_cuba_km").round(4),
+         source=ALL_SOURCES,
+-        height=600,
++        height=620,
++        export_width=820,
+     )
+ 
+ 
+@@ -1168,7 +1209,8 @@ def cuba_nearest_records(dark: bool = False) -> Chart:
+     return Chart(
+         key="cuba_nearest_records",
+         title=title,
+-        subtitle="For each dataset, the distance from Cuba's village center to its closest site, and that site's record years",
++        subtitle=(f"For each dataset, the distance from Cuba's village center to its closest site, and that site's record "
++                  f"years (all records {_years([pts['first_year'].min(), pts['last_year'].max()])})"),
+         caption=("Distances are straight-line from the approximate village center. A short bar only means a site is "
+                  "close, not that it answers the question: the closest records are one-time aquifer tests and river "
+                  "visits, neither of which tracks groundwater over time."),
+@@ -1188,6 +1230,7 @@ def cuba_nearest_records(dark: bool = False) -> Chart:
+ M2D_TO_FT2D = 10.7639  # 1 m²/day in ft²/day
+ # San Jose Formation (Cuba Mesa Member) transmissivity published in Blandford et al. (2025),
+ # NMGS Guidebook 75, Table 1 (dataset 6, data/data6_cuba_mesa_member_of_san_jose_formation.pdf)
++PUBLISHED_SJ_SHORT = ["SJ-2259", "Stone 1983"]
+ PUBLISHED_SJ_T = [
+     ("Well SJ-2259, Lindrith area (Blandford et al. 2025, Table 1)", 9.4, 9.4),
+     ("Stone et al. (1983), two tests, as compiled in Blandford et al. (2025), Table 1", 4.0, 11.0),
+@@ -1209,6 +1252,7 @@ def ojo_alamo_vs_san_jose(dark: bool = False) -> Chart:
+     for c, (col, lab, logx, ticks) in enumerate(metrics, start=1):
+         for f in forms:
+             s = sub[(sub["formation_short"] == f) & sub[col].notna()]
++            s = s.drop_duplicates(subset=["well_key", "date", col])  # a value entered twice for one test shows once
+             jitter = np.linspace(-0.12, 0.12, len(s)) if len(s) > 1 else np.zeros(len(s))
+             fig.add_trace(go.Scatter(
+                 x=s[col], y=yi[f] + jitter, mode="markers", name=f"{f} (aquifer tests)", legendgroup=f,
+@@ -1217,15 +1261,16 @@ def ojo_alamo_vs_san_jose(dark: bool = False) -> Chart:
+                 hovertemplate=("<b>%{customdata[0]}</b> (" + f + ")<br>tested %{customdata[1]}, "
+                                "%{customdata[2]:.0f} km from Cuba<br>" + lab + ": <b>%{x:,.3~r}</b><extra></extra>"),
+             ), row=1, col=c)
+-            fig.add_annotation(x=1, xref=f"x{'' if c == 1 else c} domain", y=yi[f] + 0.36, yref="y",
++            fig.add_annotation(x=1, xref=f"x{'' if c == 1 else c} domain", y=yi[f] - 0.3, yref="y",
+                                text=f"n={len(s)}", showarrow=False, xanchor="right",
+                                font=dict(size=12, color=p["muted"]))
+         if col == "transmissivity_drawdown_ft2_per_day":  # published San Jose values (dataset 6)
+             for k, (name, lo, hi) in enumerate(PUBLISHED_SJ_T):
+-                y = yi["San Jose Formation"] + 0.22 + 0.1 * k
++                y = yi["San Jose Formation"] + 0.22 + 0.22 * k
+                 xs = [lo * M2D_TO_FT2D, hi * M2D_TO_FT2D] if hi > lo else [lo * M2D_TO_FT2D]
+                 fig.add_trace(go.Scatter(
+-                    x=xs, y=[y] * len(xs), mode="lines+markers",
++                    x=xs, y=[y] * len(xs), mode="lines+markers+text", text=[""] * (len(xs) - 1) + [PUBLISHED_SJ_SHORT[k]],
++                    textposition="middle right", textfont=dict(size=11, color=p["ink2"]),
+                     name="Published San Jose values (dataset 6, Table 1)", legendgroup="pub", showlegend=k == 0,
+                     line=dict(color=p["san_jose"], width=2),
+                     marker=dict(symbol="diamond-open", size=10, color=p["san_jose"], line=dict(width=2)),
+@@ -1235,9 +1280,9 @@ def ojo_alamo_vs_san_jose(dark: bool = False) -> Chart:
+             fig.update_xaxes(type="log", row=1, col=c, tickvals=ticks, ticktext=[f"{t:g}" for t in ticks])
+         else:
+             fig.update_xaxes(rangemode="tozero", row=1, col=c)
+-    fig.update_yaxes(tickvals=[0, 1], ticktext=forms, range=[1.6, -0.55], showgrid=False)
++    fig.update_yaxes(tickvals=[0, 1], ticktext=forms, range=[1.75, -0.6], showgrid=False)
+     _left_align_titles(fig, p["ink2"], size=13.5)
+-    _base_layout(fig, dark, 340, margin=dict(l=170, t=100), legend=dict(y=1.3))
++    _base_layout(fig, dark, 360, margin=dict(l=170, t=100), legend=dict(y=1.3))
+ 
+     keyed = sub[["formation_short", "well_key", "date"]].drop_duplicates()
+     events = keyed.groupby("formation_short").size()
+@@ -1264,7 +1309,9 @@ def ojo_alamo_vs_san_jose(dark: bool = False) -> Chart:
+                      f"at wells {far_oa['distance_from_cuba_km'].min():.0f}-{far_oa['distance_from_cuba_km'].max():.0f} km away."),
+         ("Measured", f"San Jose: one test at one well ({sj1['site_name']}, {sj1['distance_from_cuba_km']:.0f} km from Cuba, "
+                      f"{int(sj1['year'])}): {sj1['depth_to_water_ft']:.0f} ft to water, {sj1['well_depth_ft']:.0f} ft deep, "
+-                     f"{sj_t.iloc[0]:.0f} ft²/day, inside the published Lindrith-area range of {pub_lo:.0f}-{pub_hi:.0f} ft²/day."),
++                     f"{sj_t.iloc[0]:.0f} ft²/day. That is close to the one published Cuba Mesa Member value near "
++                     f"Lindrith ({PUBLISHED_SJ_T[0][1] * M2D_TO_FT2D:.0f} ft²/day at well SJ-2259, estimated from specific "
++                     f"capacity) and inside the San Jose range from Stone et al. (1983), {pub_lo:.0f}-{pub_hi:.0f} ft²/day."),
+         ("Insufficient data", "Comparing the formations needs more (and recent) tests, plus the Ojo Alamo thickness and "
+                               "extent maps in USGS HA-720-B (dataset 5), which is a scanned map plate not yet digitized."),
+     ]
+@@ -1279,13 +1326,14 @@ def ojo_alamo_vs_san_jose(dark: bool = False) -> Chart:
+         caption=("A test event is one well on one date; some events are reported on two rows (e.g. separate drawdown "
+                  "results), so n counts values. Two Ojo Alamo well names, 'Cuba Independent Rural School Well No 1' "
+                  "and '21.1W.28.143', share a location and depth and may be the same well. Open violet diamonds are "
+-                 "published San Jose Formation (Cuba Mesa Member) transmissivity from Blandford et al. (2025, Table 1): "
+-                 "one well in their study area near Lindrith, north of Cuba, and a range from Stone et al. (1983) that "
+-                 "the paper compiles; both converted from m²/day. Depth to water and the two right panels use log "
++                 "published San Jose Formation transmissivity compiled in Blandford et al. (2025, Table 1): well SJ-2259, "
++                 "screened in the Cuba Mesa Member near Lindrith (estimated from specific capacity, assuming 70% well "
++                 "efficiency), and a range from two tests in Stone et al. (1983), location not given; both converted "
++                 "from m²/day. A value entered twice for the same test is drawn once. Depth to water and the two right panels use log "
+                  "scales. Blank panels mean the value wasn't recorded. The tests are "
+                  f"{date.today().year - int(sub['year'].max())}-{date.today().year - int(sub['year'].min())} years old and don't show which "
+                  "formation Cuba's municipal wells use today."),
+-        scope=f"{SCOPE_COUNTY_ALL}: tests {_km_range(sub['latitude'], sub['longitude'])} from Cuba; published values from the San Juan Basin north of Cuba",
++        scope=f"{SCOPE_COUNTY_ALL}: tests {_km_range(sub['latitude'], sub['longitude'])} from Cuba; published values from the San Juan Basin",
+         rqs=(4, 2),
+         findings=findings,
+         fig=fig,
+@@ -1332,7 +1380,14 @@ def ojo_alamo_depth_map(dark: bool = False) -> Chart:
+     ]
+     for key, (tx, ty), text in notes:
+         x, y = PLATE_POINTS[key]
+-        fig.add_annotation(x=x, y=y, ax=tx, ay=ty, text=text, showarrow=True, align="left", **box)
++        fig.add_annotation(x=x, y=y, ax=tx, ay=ty, text=text, showarrow=True, align="left", standoff=6, **box)
++    # 25 km scale bar. The plate is 1:1,000,000; the crop is 200 dpi x 0.8 = 160 px per inch, so
++    # 1 km = 0.03937 in = 6.30 px. (Checked against the plate's graticule: 30' of latitude = 55.5 km ~ 348 px.)
++    px_per_km = 160 * 100000 / 2.54 / 1_000_000
++    x0, y0 = 60, 880
++    fig.add_shape(type="line", x0=x0, x1=x0 + 25 * px_per_km, y0=y0, y1=y0, line=dict(color="#0b0b0b", width=3))
++    fig.add_annotation(x=x0 + 25 * px_per_km, y=y0, text="25 km", showarrow=False, xanchor="left", xshift=6,
++                       bgcolor="rgba(255,255,255,0.92)", font=dict(size=13, color="#0b0b0b"))
+     fig.update_xaxes(visible=False, range=[0, w])
+     fig.update_yaxes(visible=False, range=[h, 0], scaleanchor="x", scaleratio=1)
+     _base_layout(fig, dark, 700, margin=dict(l=10, r=10, t=10, b=10))
+@@ -1346,7 +1401,7 @@ def ojo_alamo_depth_map(dark: bool = False) -> Chart:
+         {"item": "File", "value": "data/data5_ojo_alamo_sandstone_pub.pdf (crop: analysis/assets/ha720b_fig5_cuba_area.jpg)"},
+     ])
+     findings = [
+-        ("Measured", "On the USGS map, Cuba sits at the southeastern end of the Ojo Alamo outcrop band, where the top of "
++        ("Measured", "Published map, read by eye: Cuba sits at the southeastern end of the Ojo Alamo outcrop band, where the top of "
+                      "the sandstone is shallow; it deepens northward along the basin's eastern edge, past the 1,000-ft "
+                      "and 3,000-ft lines (read from the published map)."),
+         ("Hypothesis", "Because the Ojo Alamo is shallow at Cuba, shallow wells there can reach it, as the 148-ft Cuba "
+@@ -1359,7 +1414,7 @@ def ojo_alamo_depth_map(dark: bool = False) -> Chart:
+         title=("On the 1990 USGS map, Cuba sits at the southeastern end of the Ojo Alamo outcrop, where the sandstone "
+                "is shallow; its top deepens northward past 1,000 and 3,000 ft"),
+         subtitle="Crop of USGS Hydrologic Atlas HA-720-B, Figure 5 (approximate depth to the top of the Ojo Alamo Sandstone), with labels added",
+-        caption=("The map itself is unchanged; only the white labels and arrows are added. Brown is where the Ojo Alamo "
++        caption=("The map itself is unchanged; only the white labels, arrows, and the 25 km scale bar are added. Brown is where the Ojo Alamo "
+                  "Sandstone crops out at the surface; each red line joins points where its top is the same depth below "
+                  "land surface, every 500 ft. 'Cuba' is the map's own town label. Dataset 5 is a scanned plate, so "
+                  "values are read by eye and nothing here is digitized."),
+@@ -1417,7 +1472,7 @@ def rio_puerco_visits(dark: bool = False) -> Chart:
+         fig.add_hline(y=0, line=dict(color=p["axis"], width=1), row=1, col=c)
+     fig.update_xaxes(range=[f"{rp['date'].dt.year.min()}-01-01", f"{rp['date'].dt.year.max()}-12-31"], dtick="M12",
+                      tickformat="%Y", row=1, col=1)
+-    fig.update_xaxes(range=[0.5, 12.5], tickvals=list(range(1, 13)), ticktext=[m[0] for m in MONTHS], row=1, col=2)
++    fig.update_xaxes(range=[0.5, 12.5], tickvals=list(range(1, 13, 2)), ticktext=MONTHS[::2], row=1, col=2)
+     _left_align_titles(fig, p["ink2"], size=13.5)
+     _base_layout(fig, dark, 420, margin=dict(t=90), legend=dict(y=1.14))
+ 
+@@ -1431,15 +1486,14 @@ def rio_puerco_visits(dark: bool = False) -> Chart:
+         ("Measured", f"{len(dry)} of {len(rp)} visits ({_years(rp['date'].dt.year)}) found no measurable flow; flowing visits "
+                      f"measured {flow['flow_cfs'].min():.2f}-{flow['flow_cfs'].max():.1f} ft³/s, all in "
+                      f"{' or '.join(MONTHS[m - 1] for m in fm)}."),
+-        ("Hypothesis", "Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; ten visits are "
+-                       "consistent with that but can't prove it."),
++        ("Hypothesis", f"Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; {len(rp)} visits "
++                       "are consistent with that but can't prove it."),
+         ("Insufficient data", "Spot visits can't show how many days a year the river has no flow, or any long-term trend."),
+     ]
+     return Chart(
+         key="rio_puerco_visits",
+         title=title,
+-        subtitle=(f"Each dot is one USGS field visit to station 08332525 ({_years(rp['date'].dt.year)}); left by date "
+-                  "(labeled with the month), right by month of year; not a continuous record"),
++        subtitle=f"One dot per USGS field visit, station 08332525, {_years(rp['date'].dt.year)}; not a continuous record",
+         caption=("No line is drawn between visits because the river was not measured in between. 'No measurable flow' "
+                  "is what the visit recorded at that moment (the channel may still hold pools), not that the river "
+                  "was dry all season. This station measures the river at Cuba, not Cuba's groundwater or water supply."),
+@@ -1494,7 +1548,7 @@ def rio_grande_quality(dark: bool = False, site: str = "RIO GRANDE BELOW COCHITI
+             hovertemplate="%{x|%b %Y}: <b>%{y:,.1f}</b><extra>" + lab + "</extra>",
+         ), row=i, col=1)
+     _left_align_titles(fig, p["ink2"], size=13.5)
+-    fig.add_annotation(x=1, y=1, xref="x domain", yref="y domain", xanchor="right", yanchor="top", showarrow=False,
++    fig.add_annotation(x=1, y=1, xref="x domain", yref="y domain", xanchor="right", yanchor="bottom", showarrow=False,
+                        text="for scale: EPA taste guideline ≈ 700-900 µS/cm, far above this axis",
+                        font=dict(size=11.5, color=p["muted"]))
+     fig.update_yaxes(tickformat=".1f", row=2, col=1)
+@@ -1530,8 +1584,8 @@ def rio_grande_quality(dark: bool = False, site: str = "RIO GRANDE BELOW COCHITI
+     return Chart(
+         key="rio_grande_quality",
+         title=title,
+-        subtitle=("Monthly values at USGS 08317400, Rio Grande below Cochiti Dam, the only site with a long "
+-                  "water-quality record in the data"),
++        subtitle=(f"Monthly values at USGS 08317400, Rio Grande below Cochiti Dam, {_years(q['date'].dt.year)} (the only "
++                  "long water-quality record in the data)"),
+         caption=("These are river measurements, not groundwater. Specific conductance rises with dissolved salts; for "
+                  "scale, the US EPA's secondary (taste) guideline of 500 mg/L total dissolved solids corresponds to "
+                  "roughly 700-900 µS/cm. Lines break at months without data. Dissolved oxygen, turbidity, and the few "
+@@ -1671,7 +1725,7 @@ def bernalillo_river_vs_well(dark: bool = False) -> Chart:
+         fig.add_vline(x=0, line=dict(color=p["axis"], width=1), row=row, col=2)
+         ax = scatter_axes[row]
+         fig.add_annotation(x=0.02, y=0.98, xref=f"x{ax} domain", yref=f"y{ax} domain",
+-                           text=f"ρ = {rho:+.2f}, n = {len(dl)}, p = {pval:.2f}", showarrow=False,
++                           text=f"ρ = {rho:+.2f}, n = {len(dl)}, p = {pval:.3f}", showarrow=False,
+                            xanchor="left", yanchor="top", font=dict(size=12, color=p["ink2"]))
+         fig.update_xaxes(title_text="Change in river flow from the year before (ft³/s)" if row == 3 else None,
+                          title_font=dict(size=13), row=row, col=2)
+@@ -1689,7 +1743,7 @@ def bernalillo_river_vs_well(dark: bool = False) -> Chart:
+     st = pd.DataFrame(stats_rows).set_index("well")
+     a, w = st.loc["Well A"], st.loc["Well"]
+     nb = "\u00a0"  # non-breaking spaces keep "ρ = +0.54" on one line
+-    title = (f"At Bernalillo, Well A's water level tended to rise in years with more river flow (ρ{nb}={nb}{a['rho']:+.2f}, "
++    title = (f"At Bernalillo, Well A's water level tended to rise in years when river flow increased (ρ{nb}={nb}{a['rho']:+.2f}, "
+              f"n{nb}={nb}{int(a['n'])}); the main well showed no clear link (ρ{nb}={nb}{w['rho']:+.2f})")
+     findings = [
+         ("Measured", f"Year-to-year change in Well A water level vs change in river flow: Spearman ρ = {a['rho']:+.2f} "
+@@ -1716,8 +1770,9 @@ def bernalillo_river_vs_well(dark: bool = False) -> Chart:
+                  f"(the main well spans about {bern[bern['well'] == 'Well']['value'].agg(lambda v: v.max() - v.min()):.0f} ft, "
+                  f"Well A about {bern[bern['well'] == 'Well A']['value'].agg(lambda v: v.max() - v.min()):.0f} ft). The scatters use changes "
+                  "from one year to the next, so the long-term drift in both records can't create a false match; "
+-                 "water-level change is positive when the water table rose. Lines break where a year has fewer than "
+-                 f"9 months of well data. The flow gage is about {gage_km:.0f} km upstream of the wells (the closer "
++                 "water-level change is positive when the water table rose. The two scatters also use different "
++                 "vertical scales. Lines break where a year has fewer than "
++                 f"{st_.MIN_MONTHS_PER_YEAR} months of well data. The flow gage is about {gage_km:.0f} km upstream of the wells (the closer "
+                  "Rio Grande near Bernalillo gage stopped in 1969)."),
+         scope=f"{SCOPE_COUNTY}: Bernalillo, about {d.distance_km(site_lat, site_lon):.0f} km from Cuba",
+         rqs=(7,),
+@@ -1767,6 +1822,10 @@ def _coverage_counts() -> pd.DataFrame:
+     add(tests[near(tests)], "Aquifer tests and well logs", "cuba")
+     add(flow[near(flow)], "Streamflow", "cuba")
+     add(wq[near(wq)], "Water quality", "cuba")
++    # no acequia records were collected yet; an empty table makes the gap visible as its own row
++    no_acequia = pd.DataFrame({"site_id": pd.Series(dtype=str), "date": pd.Series(dtype="datetime64[ns]")})
++    add(no_acequia, "Acequias", "county")
++    add(no_acequia, "Acequias", "cuba")
+     return pd.DataFrame(rows)
+ 
+ 
+@@ -1854,7 +1913,7 @@ def coverage_timeline(dark: bool = False, start: int = 1925, end: int = 2026) ->
+ # analysis team's rating of the OSE aquifer-test file (no brief yet) and of the
+ # non-groundwater parts of dataset 1. Levels: 3 strong, 2 moderate, 1 limited, 0 none.
+ EVIDENCE = {
+-    "1 · USGS stats (wells)": {1: ("Strong", 3), 2: ("Partial", 1), 3: ("None", 0), 8: ("Strong", 3), 9: ("Strong", 3)},
++    "1 · USGS stats (wells)": {1: ("Strong", 3), 2: ("Partial", 1), 3: ("None", 0), 7: ("Partial†", 1), 8: ("Strong", 3), 9: ("Strong", 3)},
+     "1 · USGS stats (rivers)†": {5: ("Limited", 1), 6: ("Limited", 1), 7: ("Partial", 1), 8: ("Moderate", 2)},
+     "2 · NMBGMR wells": {1: ("Moderate", 2), 2: ("Best fit", 2), 3: ("None", 0), 8: ("Strong", 3), 9: ("Moderate", 2)},
+     "3 · Aquifer sensitivity": {1: ("None", 0), 2: ("None", 0), 3: ("None", 0), 5: ("Potential", 1), 8: ("Limited", 1), 9: ("Conditional", 1)},
+@@ -1886,7 +1945,7 @@ def evidence_matrix(dark: bool = False) -> Chart:
+         for i, q in enumerate(rqs):
+             if q in EVIDENCE[c]:
+                 text[i][j], z[i, j] = EVIDENCE[c][q]
+-    ramp = [p["grid"], *(RAMP_DARK if dark else RAMP_LIGHT)[:3]]
++    ramp = ["#3a3936" if dark else p["grid"], *(RAMP_DARK if dark else RAMP_LIGHT)[:3]]
+     cs = []
+     for k, c in enumerate(ramp):
+         cs += [[k / 4, c], [(k + 1) / 4, c]]
+@@ -1906,7 +1965,7 @@ def evidence_matrix(dark: bool = False) -> Chart:
+                                  marker=dict(symbol="square", size=13, color=c)))
+     fig.update_xaxes(side="top", tickangle=-30, showgrid=False, showline=False, ticks="")
+     fig.update_yaxes(autorange="reversed", showgrid=False, showline=False, ticks="")
+-    _base_layout(fig, dark, 480, legend=dict(y=-0.04, yanchor="top"), margin=dict(l=230, t=130, b=40, r=60))
++    _base_layout(fig, dark, 480, legend=dict(y=-0.04, yanchor="top"), margin=dict(l=230, t=130, b=40, r=95))
+     weak = [q for q in rqs if not any(EVIDENCE[c].get(q, ("", -1))[1] >= 2 for c in cols)]
+     missing = {q: NEEDS_DATA[q] for q in weak if q in NEEDS_DATA}
+     title = (f"Per the dataset briefs, no dataset gives more than limited support for research questions "
+@@ -1977,8 +2036,8 @@ def aquifer_sensitivity_classes(dark: bool = False) -> Chart:
+         key="aquifer_sensitivity_classes",
+         title=title,
+         subtitle="Aquifer-sensitivity classes in the downloaded table (dataset 3): share of polygons and share of listed area",
+-        caption=("Area shares use the table's Shape__Area column, whose units aren't stated; every row is in the same "
+-                 "units, so the shares are valid even though the totals can't be labeled. Polygon counts and area "
++        caption=("Area shares use the table's Shape__Area column, whose units aren't stated (they appear to be square "
++                 "degrees, which shrink slightly northward), so the shares are approximate. Polygon counts and area "
+                  "shares differ because a few large polygons dominate. This describes the downloaded inventory, not Cuba."),
+         scope="Unknown extent (the file has no locations)",
+         rqs=(8, 9),
+diff --git a/analysis/data.py b/analysis/data.py
+index d3b2fb3..33586a9 100644
+--- a/analysis/data.py
++++ b/analysis/data.py
+@@ -211,6 +211,15 @@ def _aquifer_tests() -> pd.DataFrame:
+         + ","
+         + df["longitude"].round(5).astype(str)
+     )
++    # The same test is sometimes entered twice under one name with slightly different
++    # coordinates (e.g. BIA-(RF)-033-2(10) Smelser Well, 8.8 and 9.1 km from Cuba, same date,
++    # depth, and water level). Rows with the same name and date within 1 km are one well.
++    for (_name, _date), grp in df.dropna(subset=["site_name"]).groupby(["site_name", "date"]):
++        keys = grp["well_key"].unique()
++        if len(keys) > 1:
++            first = grp.iloc[0]
++            near = distance_km(grp["latitude"], grp["longitude"], first["latitude"], first["longitude"]) <= 1.0
++            df.loc[grp.index[near], "well_key"] = first["well_key"]
+     df["formation_short"] = df["formation"].map(FORMATION_SHORT).fillna(df["formation"].str.title())
+     df["year"] = df["date"].dt.year
+     df["distance_from_cuba_km"] = distance_km(df["latitude"], df["longitude"])
+diff --git a/analysis/st_helpers.py b/analysis/st_helpers.py
+index 80dc1c2..50ffd34 100644
+--- a/analysis/st_helpers.py
++++ b/analysis/st_helpers.py
+@@ -16,6 +16,8 @@ chart code also runs outside the app (for the report figures).
+ 
+ from __future__ import annotations
+ 
++import inspect
++
+ import streamlit as st
+ 
+ from . import charts
+@@ -41,6 +43,16 @@ def is_dark() -> bool:
+         return False
+ 
+ 
++def _plotly_kwargs(alt_text: str) -> dict:
++    """Arguments that differ between Streamlit versions: newer versions take
++    width="stretch" and alt text; older ones (e.g. 1.50) use use_container_width."""
++    params = inspect.signature(st.plotly_chart).parameters
++    kw = {"width": "stretch"} if "width" in params else {"use_container_width": True}
++    if "alt" in params:
++        kw["alt"] = alt_text
++    return kw
++
++
+ @st.cache_resource(show_spinner="Building chart...")
+ def _build(name: str, dark: bool, kwargs: tuple) -> charts.Chart:
+     fn = getattr(charts, name)
+@@ -60,7 +72,7 @@ def show_chart(chart_fn, show_findings: bool = True, **kwargs) -> charts.Chart:
+     st.subheader(c.title)
+     st.caption(c.subtitle)
+     st.plotly_chart(c.fig, theme=None, config=PLOTLY_CONFIG, key=f"chart_{c.key}",
+-                    alt=f"{c.title}. {c.subtitle}")
++                    **_plotly_kwargs(f"{c.title}. {c.subtitle}"))
+     st.caption(f"**Scope: {c.scope}.** {c.caption} *Source: {c.source}.*")
+     if show_findings and c.findings:
+         st.markdown("\n".join(f"- {FINDING_BADGE.get(label, label)} {text}" for label, text in c.findings))
+diff --git a/analysis/stats.py b/analysis/stats.py
+index f67bd26..9e1b160 100644
+--- a/analysis/stats.py
++++ b/analysis/stats.py
+@@ -17,7 +17,7 @@ to follow a low year). The Mann-Kendall p-value assumes independent years, so
+ it can make a trend look more certain than it is. The charts therefore show
+ the size of the change and its confidence interval, not just the label.
+ 
+-Only numpy and the standard library are used, so no new packages are needed.
++Only numpy, pandas, and the standard library are used (no scipy), so no new packages are needed.
+ """
+ 
+ from __future__ import annotations
+diff --git a/analysis/theme.py b/analysis/theme.py
+index badf360..2a13647 100644
+--- a/analysis/theme.py
++++ b/analysis/theme.py
+@@ -77,7 +77,7 @@ _DARK = {
+     "surface": "#0e1117",  # Streamlit's dark background
+     "context": "#5f5e59",
+     "boundary": "#c3c2b7",
+-    "blue_light": "#184f95",  # on dark backgrounds the "older/lighter" step is the darker one
++    "blue_light": "#2f68ad",  # on dark backgrounds the "older/lighter" step is the dimmer one
+     "blue_dark": "#9ec5f4",
+     "ojo_alamo": "#c98500",
+     "san_jose": "#9085e9",
+@@ -136,7 +136,7 @@ def _template(dark: bool) -> go.layout.Template:
+         tickcolor=p["axis"],
+         ticklen=4,
+         tickfont=dict(color=p["ink2"]),
+-        title=dict(font=dict(color=p["ink2"])),
++        title=dict(font=dict(color=p["ink2"]), standoff=10),
+         automargin=True,
+     )
+     return go.layout.Template(
+diff --git a/app_pages/data_sources.py b/app_pages/data_sources.py
+index 67e95dd..dd39422 100644
+--- a/app_pages/data_sources.py
++++ b/app_pages/data_sources.py
+@@ -1,26 +1,32 @@
+ import streamlit as st
+ 
+-from analysis import charts
++from analysis import charts, data
+ from analysis.st_helpers import finding_legend, show_chart
+ 
+ st.title("Data sources")
+ st.write("The datasets behind this app and where they come from.")
+ 
++_nm, _rp, _wl = data.load_nmbgmr_levels(), data.load_rio_puerco(), data.load_well_logs()
++nm_rows, nm_wells = len(_nm), _nm["site_id"].nunique()
++nm_years = f"{_nm['date'].dt.year.min()} to {_nm['date'].dt.year.max()}"
++rp_n, rp_years = len(_rp), f"{_rp['date'].dt.year.min()} to {_rp['date'].dt.year.max()}"
++wl_n, wl_years = len(_wl), f"{_wl['date'].dt.year.min()} to {_wl['date'].dt.year.max()}"
++
+ st.subheader("In the app")
+ st.markdown(
+-    """
++    f"""
+ - **USGS monitoring statistics** (`water_flow_data_sandoval_county_sources.csv`): monthly and yearly
+   statistics for 30 monitoring sites in Sandoval County, covering streamflow, groundwater levels,
+   reservoir storage, sediment, temperature, and water quality, from 1926 to 2026.
+ - **OSE aquifer tests** (`ose_aquifer_test_wells.csv`, cleaned into `data/clean/aquifer_tests.csv`, which
+   the charts use): New Mexico Office of the State Engineer aquifer-test records, including well depth,
+   geologic formation, and hydraulic properties.
+-- **NMBGMR groundwater levels** (`data2_groundwater_sandoval_county.csv`): 456 depth-to-water
+-  measurements from 87 wells, mostly around Placitas, 1997 to 2019.
+-- **Rio Puerco at Cuba** (`data4_*.csv`): 10 USGS streamflow visits at Cuba, 2019 to 2026.
+-- **OSE well logs** (`data7_Wells With Well Log Information.csv`): drilling records for 6 wells in
+-  the northwest of the county, 1978 to 2022.
+-- **Aquifer sensitivity** (`data3_Aquifer_Sensitivity.csv`): 613 mapped areas with a sensitivity class,
++- **NMBGMR groundwater levels** (`data2_groundwater_sandoval_county.csv`): {nm_rows} depth-to-water
++  measurements from {nm_wells} wells, mostly around Placitas, {nm_years}.
++- **Rio Puerco at Cuba** (`data4_*.csv`): {rp_n} USGS streamflow visits at Cuba, {rp_years}.
++- **OSE well logs** (`data7_Wells With Well Log Information.csv`): drilling records for {wl_n} wells in
++  the northwest of the county, {wl_years}.
++- **Aquifer sensitivity** (`data3_Aquifer_Sensitivity.csv`): mapped areas with a sensitivity class,
+   but no locations yet, so it is summarized below rather than mapped.
+ - **San Jose Formation study** (`data6_...pdf`, Blandford et al. 2025): published transmissivity values
+   shown on the Cuba case study page. The Ojo Alamo map plate (`data5_...pdf`) is a scanned image; a
+@@ -55,4 +61,4 @@ st.caption(
+     "Research question 9: indicators the data can support, where each applies, and how much to trust it. "
+     "Values are computed from the data."
+ )
+-st.dataframe(charts.indicator_table(), hide_index=True, width="stretch")
++st.table(charts.indicator_table().set_index("Indicator"))  # st.table wraps long text instead of scrolling
+diff --git a/docs/analysis.md b/docs/analysis.md
+index f581474..73e7130 100644
+--- a/docs/analysis.md
++++ b/docs/analysis.md
+@@ -13,21 +13,21 @@ The short version: the data say a lot about groundwater near the Rio Grande (Rio
+ 
+ | # | Chart | Research questions | App page | Takeaway |
+ |---|---|---|---|---|
+-| 1 | [county_coverage_map](#1-county_coverage_map) | 8, 1, 3 | County map | 85% of the 272 mapped sites are east of 106.75° W, along the Rio Grande side; only 18 are within 25 km of Cuba, and none of those is a monitoring well |
++| 1 | [county_coverage_map](#1-county_coverage_map) | 8, 1, 3 | County map | 86% of the 271 mapped sites are east of 106.75° W, along the Rio Grande side; only 17 are within 25 km of Cuba, and none of those is a monitoring well |
+ | 2 | [groundwater_hydrographs](#2-groundwater_hydrographs) | 1, 8, 9 | Groundwater levels | 5 of 9 monitored wells fell over their records and 3 rose; the Sandia site has risen 13 ft since 2007 |
+ | 3 | [groundwater_trends](#3-groundwater_trends) | 1, 9 | Groundwater levels | In 2016-2025, 4 of 7 wells were still falling (Lincoln Middle School and Dome Road well); only the Sandia site wells rose |
+-| 4 | [placitas_remeasured](#4-placitas_remeasured) | 1, 8 | Groundwater levels | Of 5 Placitas wells measured in 1997-1998 and 2018-2019, 3 changed ≤5 ft; PC-014 is 51 ft deeper and PC-025 57 ft shallower (unstable baseline) |
+-| 5 | [well_depth_vs_water](#5-well_depth_vs_water) | 2 | Wells and aquifers | Where water is deeper, wells are drilled deeper (Spearman ρ = 0.63-0.64 within each record type), but the spread is wide: half of 181 wells have water between 41 and 240 ft down |
+-| 6 | [depth_by_area](#6-depth_by_area) | 2, 3 | Wells and aquifers | Among recorded wells, depth to water was smallest around Cochiti-Peña Blanca (median 22 ft) and largest around Bernalillo-Rio Rancho (median 375 ft; 9 of 11 are aquifer tests from 1987-2007) |
+-| 7 | [formation_properties](#7-formation_properties) | 2, 4 | Wells and aquifers | Transmissivity varies more within formations than between them: Madera Limestone values span 4.8 orders of magnitude, formation medians only 2.6 |
+-| 8 | [cuba_area_map](#8-cuba_area_map) | 3, 8 | Cuba case study | Within 25 km of Cuba: 16 wells with one-time aquifer tests (1957-1979), 1 well log, and 1 stream gage; no well there is measured repeatedly |
+-| 9 | [cuba_nearest_records](#9-cuba_nearest_records) | 3, 8 | Cuba case study | The nearest well with repeated water-level measurements is 38 km from Cuba; within 25 km there are only one-time tests at 16 wells (1957-1979), 1 well log, and 1 stream gage |
++| 4 | [placitas_remeasured](#4-placitas_remeasured) | 1, 8 | Groundwater levels | Of 5 Placitas wells measured in 1997-1998 and 2018-2019, 3 changed ≤5 ft (2 with flagged baselines); PC-014 is 51 ft deeper, and PC-025 is 57 ft shallower from an unstable 1990s baseline |
++| 5 | [well_depth_vs_water](#5-well_depth_vs_water) | 2 | Wells and aquifers | Where water is deeper, wells are drilled deeper (ρ = 0.63-0.64 within the 2 larger record types), but half of 180 wells have water 41-241 ft down |
++| 6 | [depth_by_area](#6-depth_by_area) | 2, 3 | Wells and aquifers | Depth to water was smallest around Cochiti-Peña Blanca (median 22 ft) and largest around Bernalillo-Rio Rancho (375 ft; 9 of 11 are 1987-2007 aquifer tests) |
++| 7 | [formation_properties](#7-formation_properties) | 2, 4 | Wells and aquifers | Transmissivity: within 3 of 9 formations, values span more than the 2.6-order spread between formation medians (up to 4.8 orders, Madera Limestone) |
++| 8 | [cuba_area_map](#8-cuba_area_map) | 3, 8 | Cuba case study | Within 25 km of Cuba: 15 wells with one-time aquifer tests (1957-1979), 1 well log, and 1 stream gage; no well there is measured repeatedly |
++| 9 | [cuba_nearest_records](#9-cuba_nearest_records) | 3, 8 | Cuba case study | The nearest well with repeated water-level measurements is 38 km from Cuba; within 25 km there are only one-time tests at 15 wells (1957-1979), 1 well log, and 1 stream gage |
+ | 10 | [ojo_alamo_depth_map](#10-ojo_alamo_depth_map) | 4, 2, 3 | Cuba case study | On the 1990 USGS map, Cuba sits at the southeastern end of the Ojo Alamo outcrop, where the sandstone is shallow; its top deepens northward past 1,000 and 3,000 ft |
+ | 11 | [ojo_alamo_vs_san_jose](#11-ojo_alamo_vs_san_jose) | 4, 2 | Cuba case study | Only 8 test events at 7-8 wells name these formations (7 Ojo Alamo, 1 San Jose; 1953-1977): too few to describe either formation, let alone compare them |
+ | 12 | [rio_puerco_visits](#12-rio_puerco_visits) | 7, 8, 9 | Cuba case study | Rio Puerco at Cuba had measurable flow on all 4 visits in Apr-May and on none of the 6 visits from Aug to Mar |
+ | 13 | [rio_grande_quality](#13-rio_grande_quality) | 5, 8 | Water quality | The Rio Grande below Cochiti Dam stays fresh: in 90% of months, specific conductance was 221-342 µS/cm (2003-2026) and pH 7.8-8.3 (2004-2025) |
+ | 14 | [canal_seasonal](#14-canal_seasonal) | 6, 7 | Acequias | The two main irrigation canals at Cochiti carry water from Mar to Nov and have zero median flow in Dec, Jan, Feb; median flow peaks near 86 ft³/s |
+-| 15 | [bernalillo_river_vs_well](#15-bernalillo_river_vs_well) | 7 | Acequias | At Bernalillo, Well A's water level tended to rise in years with more river flow (ρ = +0.54, n = 17); the main well showed no clear link (ρ = +0.12) |
++| 15 | [bernalillo_river_vs_well](#15-bernalillo_river_vs_well) | 7 | Acequias | At Bernalillo, Well A's water level tended to rise in years when river flow increased (ρ = +0.54, n = 17); the main well showed no clear link (ρ = +0.12) |
+ | 16 | [coverage_timeline](#16-coverage_timeline) | 8, 9 | Data sources | Groundwater levels are monitored every year only since 1999, at 4 sites in the east of the county; the Cuba area has no water-level monitoring or water-quality records |
+ | 17 | [evidence_matrix](#17-evidence_matrix) | 8, 9 | Data sources | Per the dataset briefs, no dataset gives more than limited support for research questions 3, 5, 6 and 7; coverage and well questions are the best supported |
+ | 18 | [aquifer_sensitivity_classes](#18-aquifer_sensitivity_classes) | 8, 9 | Data sources | High sensitivity covers 25% of the 613 mapped areas but 48% of the listed area; without locations, none of it can be placed on the map or linked to Cuba |
+@@ -129,10 +129,10 @@ James cleaned two datasets (`data/clean/`). The others aren't cleaned yet, so `a
+ | `data4_channel-measurements.csv`, `data4_field-measurements.csv`, `data4_monitoring-location-metadata.csv` (Rio Puerco at Cuba) | `load_rio_puerco()` | Joins the 4 gage-height readings to their visits; converts UTC times to local dates; flags visits with flow above 0. |
+ | `data7_Wells With Well Log Information.csv` (OSE well logs) | `load_well_logs()` | Drops the footnote line; removes extra spaces from POD numbers; converts UTM zone 13 to latitude/longitude. **SJ 04455 POD1** isn't mapped: its northing puts it about 80 km north of its legal description (section 1, T21N R4W), probably a typo. |
+ | `water_flow_data_sandoval_county_sources.csv` (USGS dataset 1, rivers and water quality) | `load_usgs_stats()` | Keeps one parameter and one interval type at a time (never mixing monthly and yearly rows), and only the central statistic (mean, or median for pH). |
+-| `data3_Aquifer_Sensitivity.csv` | read in `charts.aquifer_sensitivity_classes()` | Counts polygons by class; nothing else, because the file has no locations. |
++| `data3_Aquifer_Sensitivity.csv` | read in `charts.aquifer_sensitivity_classes()` | Counts polygons by class and sums their listed area (approximate shares; the units aren't stated). Nothing is mapped, because the file has no locations. |
+ | `sandoval_county_boundary.geojson` | `load_county_boundary()` | A simplified county outline for map context, from the US Census Bureau via plotly/datasets (`geojson-counties-fips.json`, FIPS 35043). |
+ 
+-From the cleaned files: wells in the aquifer-test file are told apart by name and location (`well_key`), not by `site_id`, because most OSE POD IDs are incomplete (see [Data cleaning](data-cleaning.md#still-open)). The UTM conversion was checked against `pyproj`; the two agree to better than 0.00000001°.
++From the cleaned files: wells in the aquifer-test file are told apart by name and location (`well_key`), not by `site_id`, because most OSE POD IDs are incomplete (see [Data cleaning](data-cleaning.md#still-open)). Rows with the same well name and test date within 1 km of each other are treated as one well (the BIA-(RF)-033-2(10) Smelser Well was entered twice with slightly different coordinates). The UTM conversion was checked against `pyproj`; the two agree to better than 0.00000001°.
+ 
+ ## Colors and labels
+ 
+@@ -142,7 +142,7 @@ Colors mean the same thing on every chart (defined in `analysis/theme.py` and ch
+ - **Wells at one site** (Well, Well A, Well B) and the two Placitas periods: shades of the water-level blue.
+ - **Formations near Cuba:** ochre = Ojo Alamo Sandstone, violet = San Jose Formation; other formations are gray.
+ - **Trend direction:** blue = water table rising, red = falling, gray = no clear trend.
+-- **Counts and ratings:** one blue scale, darker = more.
++- **Counts and ratings:** one neutral gray scale, darker = more (so blue keeps meaning "water level").
+ 
+ Depth-to-water axes are flipped so that up means a higher water table. Every caption says whether the chart describes Cuba, the Cuba area, or Sandoval County, and how far its data are from Cuba.
+ 
+@@ -155,9 +155,9 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ ### 1. county_coverage_map
+ 
+-![85% of the 272 mapped sites are east of 106.75° W, along the Rio Grande side; only 18 are within 25 km of Cuba, and none of those is a monitoring well](figures/county_coverage_map.png)
++![86% of the 271 mapped sites are east of 106.75° W, along the Rio Grande side; only 17 are within 25 km of Cuba, and none of those is a monitoring well](figures/county_coverage_map.png)
+ 
+-**Takeaway:** 85% of the 272 mapped sites are east of 106.75° W, along the Rio Grande side; only 18 are within 25 km of Cuba, and none of those is a monitoring well.
++**Takeaway:** 86% of the 271 mapped sites are east of 106.75° W, along the Rio Grande side; only 17 are within 25 km of Cuba, and none of those is a monitoring well.
+ 
+ | | |
+ |---|---|
+@@ -172,8 +172,8 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ **Findings:**
+ 
+-- **Measured:** 272 mapped sites: 96 water-level records, 154 well construction and aquifer tests, 22 surface-water stations.
+-- **Measured:** Within 25 km of Cuba: 18 sites, none of them water-level monitoring sites; they are one-time aquifer tests or well logs and the Rio Puerco stream gage.
++- **Measured:** 271 mapped sites: 96 water-level records, 153 well construction and aquifer tests, 22 surface-water stations.
++- **Measured:** Within 25 km of Cuba: 17 sites, none of them water-level monitoring sites; they are one-time aquifer tests or well logs and the Rio Puerco stream gage.
+ - **Insufficient data:** The northwest of the county, around Cuba, has no repeated groundwater-level record in the collected data.
+ 
+ 
+@@ -217,7 +217,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ | App page | Groundwater levels |
+ | Code | `charts.groundwater_trends()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** Trend = Sen's slope of annual means (years with at least 9 months of data). Sen's slope assumes one direction, so a record that fell and then rose, like the Sandia site (see the hydrographs), gets one average slope. Color shows the Mann-Kendall test: red = falling, blue = rising, gray = no clear trend (p ≥ 0.05). Sign is flipped from depth so that negative = water table falling. Both the p-values and the intervals assume each year is independent; groundwater years aren't (a low year tends to follow a low year), so both look more certain than they are. Records differ in length (see the years by each well).
++**How to read it and method:** Trend = Sen's slope of annual means (years with at least 9 months of data). The 2016-2025 window has only 9-10 years per well. Intervals narrower than the marker: Dome Road well · Well (full record). Sen's slope assumes one direction, so a record that fell and then rose, like the Sandia site (see the hydrographs), gets one average slope. Color shows the Mann-Kendall test: red = falling, blue = rising, gray = no clear trend (p ≥ 0.05). Sign is flipped from depth so that negative = water table falling. Both the p-values and the intervals assume each year is independent; groundwater years aren't (a low year tends to follow a low year), so both look more certain than they are. Records differ in length (see the years by each well).
+ 
+ **Findings:**
+ 
+@@ -228,9 +228,9 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ ### 4. placitas_remeasured
+ 
+-![Of 5 Placitas wells measured in 1997-1998 and 2018-2019, 3 changed ≤5 ft; PC-014 is 51 ft deeper and PC-025 57 ft shallower (unstable baseline)](figures/placitas_remeasured.png)
++![Of 5 Placitas wells measured in 1997-1998 and 2018-2019, 3 changed ≤5 ft (2 with flagged baselines); PC-014 is 51 ft deeper, and PC-025 is 57 ft shallower from an unstable 1990s baseline](figures/placitas_remeasured.png)
+ 
+-**Takeaway:** Of 5 Placitas wells measured in 1997-1998 and 2018-2019, 3 changed ≤5 ft; PC-014 is 51 ft deeper and PC-025 57 ft shallower (unstable baseline).
++**Takeaway:** Of 5 Placitas wells measured in 1997-1998 and 2018-2019, 3 changed ≤5 ft (2 with flagged baselines); PC-014 is 51 ft deeper, and PC-025 is 57 ft shallower from an unstable 1990s baseline.
+ 
+ | | |
+ |---|---|
+@@ -253,15 +253,15 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ ### 5. well_depth_vs_water
+ 
+-![Where water is deeper, wells are drilled deeper (Spearman ρ = 0.63-0.64 within each record type), but the spread is wide: half of 181 wells have water between 41 and 240 ft down](figures/well_depth_vs_water.png)
++![Where water is deeper, wells are drilled deeper (ρ = 0.63-0.64 within the 2 larger record types), but half of 180 wells have water 41-241 ft down](figures/well_depth_vs_water.png)
+ 
+-**Takeaway:** Where water is deeper, wells are drilled deeper (Spearman ρ = 0.63-0.64 within each record type), but the spread is wide: half of 181 wells have water between 41 and 240 ft down.
++**Takeaway:** Where water is deeper, wells are drilled deeper (ρ = 0.63-0.64 within the 2 larger record types), but half of 180 wells have water 41-241 ft down.
+ 
+ | | |
+ |---|---|
+ | Research questions | 2 |
+-| What is plotted | One point per well: well depth vs depth to water, from three record types, 1930-2022 (axis flipped: deeper water is lower) |
+-| Scope | Sandoval County, including the Cuba area (most wells are around Placitas and Cochiti; 8 within 25 km of Cuba) |
++| What is plotted | One point per well: well depth vs depth to water, from three record types, 1930-2022 |
++| Scope | Sandoval County, including the Cuba area (most wells are around Placitas and Cochiti; 7 within 25 km of Cuba) |
+ | Data | NMBGMR groundwater levels (data/data2_groundwater_sandoval_county.csv), NM OSE aquifer tests (data/clean/aquifer_tests.csv), NM OSE well logs (data/data7_Wells With Well Log Information.csv) |
+ | App page | Wells and aquifers |
+ | Code | `charts.well_depth_vs_water()` in `analysis/charts.py` |
+@@ -270,7 +270,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ **Findings:**
+ 
+-- **Measured:** Median depth to water by record type: NMBGMR wells 53 ft (n=72); OSE aquifer tests 165 ft (n=104); OSE well logs 240 ft (n=5).
++- **Measured:** Median depth to water by record type: NMBGMR wells 53 ft (n=72); OSE aquifer tests 165 ft (n=103); OSE well logs 240 ft (n=5).
+ - **Measured:** Spearman ρ between well depth and depth to water: NMBGMR wells 0.64; OSE aquifer tests 0.63 (all records pooled: 0.73, inflated because the record types differ in depth). Record types with fewer than 10 wells aren't tested.
+ - **Measured:** Median water column above the well bottom: 142 ft. 2 wells had water above land surface when tested (flowing artesian; plotted above 0).
+ - **Insufficient data:** Only the aquifer tests record the formation; the NMBGMR and well-log files don't, so this chart can't say which aquifer each well uses.
+@@ -278,9 +278,9 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ ### 6. depth_by_area
+ 
+-![Among recorded wells, depth to water was smallest around Cochiti-Peña Blanca (median 22 ft) and largest around Bernalillo-Rio Rancho (median 375 ft; 9 of 11 are aquifer tests from 1987-2007)](figures/depth_by_area.png)
++![Depth to water was smallest around Cochiti-Peña Blanca (median 22 ft) and largest around Bernalillo-Rio Rancho (375 ft; 9 of 11 are 1987-2007 aquifer tests)](figures/depth_by_area.png)
+ 
+-**Takeaway:** Among recorded wells, depth to water was smallest around Cochiti-Peña Blanca (median 22 ft) and largest around Bernalillo-Rio Rancho (median 375 ft; 9 of 11 are aquifer tests from 1987-2007).
++**Takeaway:** Depth to water was smallest around Cochiti-Peña Blanca (median 22 ft) and largest around Bernalillo-Rio Rancho (375 ft; 9 of 11 are 1987-2007 aquifer tests).
+ 
+ | | |
+ |---|---|
+@@ -291,20 +291,20 @@ Each section below is written from the chart itself, so it always matches the ap
+ | App page | Wells and aquifers |
+ | Code | `charts.depth_by_area()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** Areas are a simple screening grouping: each well goes to the nearest of seven towns within 20 km (25 km for Cuba, to match the project's Cuba area), otherwise 'Elsewhere in county'. They are not hydrogeologic regions. One point per well, including wells without a recorded well depth; medians are shown only where an area has at least 5 wells. 1 well without a usable location is left out.
++**How to read it and method:** Areas are a simple screening grouping: each well goes to the nearest of 7 towns within 20 km (25 km for Cuba, to match the project's Cuba area), otherwise 'Elsewhere in county'. They are not hydrogeologic regions. One point per well, including wells without a recorded well depth; medians are shown only where an area has at least 5 wells. Values below 0 are flowing wells (water above land surface). 1 well without a usable location is left out.
+ 
+ **Findings:**
+ 
+-- **Measured:** Median depth to water by area (areas with ≥5 wells): Cochiti-Peña Blanca 22 ft; Cuba area (≤25 km) 95 ft; Placitas 116 ft; Elsewhere in county 180 ft; Jemez Springs-San Ysidro 212 ft; Bernalillo-Rio Rancho 375 ft.
+-- **Measured:** Cuba area: 11 wells with a recorded level, 10-509 ft to water, all recorded 1957-2018.
++- **Measured:** Median depth to water by area (areas with ≥5 wells): Cochiti-Peña Blanca 22 ft; Cuba area (≤25 km) 104 ft; Placitas 116 ft; Elsewhere in county 180 ft; Jemez Springs-San Ysidro 212 ft; Bernalillo-Rio Rancho 375 ft.
++- **Measured:** Cuba area: 10 well records with a level (1 pair at the same spot may be one well), 10-509 ft to water, all recorded 1957-2018.
+ - **Insufficient data:** Areas mix record types and decades; differences may reflect different aquifers, land elevations, and dates, not just place.
+ 
+ 
+ ### 7. formation_properties
+ 
+-![Transmissivity varies more within formations than between them: Madera Limestone values span 4.8 orders of magnitude, formation medians only 2.6](figures/formation_properties__transmissivity_drawdown_ft2_per_day.png)
++![Transmissivity: within 3 of 9 formations, values span more than the 2.6-order spread between formation medians (up to 4.8 orders, Madera Limestone)](figures/formation_properties__transmissivity_drawdown_ft2_per_day.png)
+ 
+-**Takeaway:** Transmissivity varies more within formations than between them: Madera Limestone values span 4.8 orders of magnitude, formation medians only 2.6.
++**Takeaway:** Transmissivity: within 3 of 9 formations, values span more than the 2.6-order spread between formation medians (up to 4.8 orders, Madera Limestone).
+ 
+ | | |
+ |---|---|
+@@ -315,21 +315,21 @@ Each section below is written from the chart itself, so it always matches the ap
+ | App page | Wells and aquifers |
+ | Code | `charts.formation_properties()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** Transmissivity is how easily water moves through the full thickness of the aquifer; higher means a more productive aquifer. Each dot is one reported value; a well tested more than once (or reported on two rows for the same day) has more than one dot, so the gray label counts values and wells. Medians are taken per well first, so a well tested twice counts once, and are drawn only for formations with at least 3 tested wells. Tests without a recorded formation (54 of 179 rows) count only in the all-wells median. Tests span 1930-2008.
++**How to read it and method:** Transmissivity is how easily water moves through the full thickness of the aquifer; higher means a more productive aquifer. Each dot is one reported value; a well tested more than once (or reported on two rows for the same day) has more than one dot, so the gray label counts values and wells. Medians are taken per well first, so a well tested twice counts once, and are drawn only for formations with at least 3 tested wells. Wells without a recorded formation (22 of the 108 wells with a value) count only in the all-wells median. Tests span 1930-2008.
+ 
+ **Findings:**
+ 
+ - **Measured:** Median of all 108 tested wells with a value: 136 ft²/day (middle half 27.5-988; 22 wells have no recorded formation).
+ - **Measured:** Among formations with ≥3 tested wells, the highest median is Alluvium and surface deposits (2,760 ft²/day) and the lowest is Point Lookout Sandstone (6.2 ft²/day).
+-- **Measured:** Ojo Alamo: median of 4 wells 94.2 ft²/day, inside the middle half of all tested wells (27.5-988); too few wells to say it differs.
++- **Measured:** Ojo Alamo: median of 4 wells 94.2 ft²/day, inside the middle half of all tested wells (27.5-988); with 4 wells, too few to say it differs.
+ - **Insufficient data:** Most formations have fewer than 10 tested wells, many tested in the 1970s; a single new test can move a median a lot.
+ 
+ 
+ ### 8. cuba_area_map
+ 
+-![Within 25 km of Cuba: 16 wells with one-time aquifer tests (1957-1979), 1 well log, and 1 stream gage; no well there is measured repeatedly](figures/cuba_area_map.png)
++![Within 25 km of Cuba: 15 wells with one-time aquifer tests (1957-1979), 1 well log, and 1 stream gage; no well there is measured repeatedly](figures/cuba_area_map.png)
+ 
+-**Takeaway:** Within 25 km of Cuba: 16 wells with one-time aquifer tests (1957-1979), 1 well log, and 1 stream gage; no well there is measured repeatedly.
++**Takeaway:** Within 25 km of Cuba: 15 wells with one-time aquifer tests (1957-1979), 1 well log, and 1 stream gage; no well there is measured repeatedly.
+ 
+ | | |
+ |---|---|
+@@ -344,21 +344,21 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ **Findings:**
+ 
+-- **Measured:** 10 of the tested wells within 25 km had a one-time depth to water recorded during their test (1957-1978), e.g. 18 ft at 0.7 km in 1957. Two of the well names may be the same well (same location and depth).
++- **Measured:** 9 of the tested wells within 25 km had a one-time depth to water recorded during their test (1957-1978), e.g. 18 ft at 0.7 km in 1957. 4 pairs of well records share a location and may be one well.
+ - **Measured:** The nearest well with repeated water-level measurements is 38 km away (WL-0062, 2 readings in 2017).
+ - **Insufficient data:** Without repeated water levels near Cuba, the data can't confirm or rule out severe decline in Cuba's aquifer (research question 3).
+ 
+ 
+ ### 9. cuba_nearest_records
+ 
+-![The nearest well with repeated water-level measurements is 38 km from Cuba; within 25 km there are only one-time tests at 16 wells (1957-1979), 1 well log, and 1 stream gage](figures/cuba_nearest_records.png)
++![The nearest well with repeated water-level measurements is 38 km from Cuba; within 25 km there are only one-time tests at 15 wells (1957-1979), 1 well log, and 1 stream gage](figures/cuba_nearest_records.png)
+ 
+-**Takeaway:** The nearest well with repeated water-level measurements is 38 km from Cuba; within 25 km there are only one-time tests at 16 wells (1957-1979), 1 well log, and 1 stream gage.
++**Takeaway:** The nearest well with repeated water-level measurements is 38 km from Cuba; within 25 km there are only one-time tests at 15 wells (1957-1979), 1 well log, and 1 stream gage.
+ 
+ | | |
+ |---|---|
+ | Research questions | 3, 8 |
+-| What is plotted | For each dataset, the distance from Cuba's village center to its closest site, and that site's record years |
++| What is plotted | For each dataset, the distance from Cuba's village center to its closest site, and that site's record years (all records 1926-2026) |
+ | Scope | Cuba and the nearest site in each dataset |
+ | Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/data2_groundwater_sandoval_county.csv, data/data7_Wells With Well Log Information.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/data4_channel-measurements.csv and data4_field-measurements.csv |
+ | App page | Cuba case study |
+@@ -388,11 +388,11 @@ Each section below is written from the chart itself, so it always matches the ap
+ | App page | Cuba case study |
+ | Code | `charts.ojo_alamo_depth_map()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** The map itself is unchanged; only the white labels and arrows are added. Brown is where the Ojo Alamo Sandstone crops out at the surface; each red line joins points where its top is the same depth below land surface, every 500 ft. 'Cuba' is the map's own town label. Dataset 5 is a scanned plate, so values are read by eye and nothing here is digitized.
++**How to read it and method:** The map itself is unchanged; only the white labels, arrows, and the 25 km scale bar are added. Brown is where the Ojo Alamo Sandstone crops out at the surface; each red line joins points where its top is the same depth below land surface, every 500 ft. 'Cuba' is the map's own town label. Dataset 5 is a scanned plate, so values are read by eye and nothing here is digitized.
+ 
+ **Findings:**
+ 
+-- **Measured:** On the USGS map, Cuba sits at the southeastern end of the Ojo Alamo outcrop band, where the top of the sandstone is shallow; it deepens northward along the basin's eastern edge, past the 1,000-ft and 3,000-ft lines (read from the published map).
++- **Measured:** Published map, read by eye: Cuba sits at the southeastern end of the Ojo Alamo outcrop band, where the top of the sandstone is shallow; it deepens northward along the basin's eastern edge, past the 1,000-ft and 3,000-ft lines (read from the published map).
+ - **Hypothesis:** Because the Ojo Alamo is shallow at Cuba, shallow wells there can reach it, as the 148-ft Cuba school well did in 1957; whether Cuba's municipal wells use it today isn't established.
+ - **Insufficient data:** This is a 1990 regional interpretation at 1:1,000,000 scale, read by eye; it doesn't show current water levels, how much water the formation holds, or which formation Cuba's wells use.
+ 
+@@ -407,17 +407,17 @@ Each section below is written from the chart itself, so it always matches the ap
+ |---|---|
+ | Research questions | 4, 2 |
+ | What is plotted | Every aquifer test recorded in the Ojo Alamo Sandstone or San Jose Formation (one dot per reported value), with published San Jose transmissivity for comparison |
+-| Scope | Sandoval County, including the Cuba area: tests 1-45 km from Cuba; published values from the San Juan Basin north of Cuba |
++| Scope | Sandoval County, including the Cuba area: tests 1-45 km from Cuba; published values from the San Juan Basin |
+ | Data | NM OSE aquifer tests (data/clean/aquifer_tests.csv); published values: Blandford et al. (2025), NMGS Guidebook 75, Table 1 (data/data6_cuba_mesa_member_of_san_jose_formation.pdf) |
+ | App page | Cuba case study |
+ | Code | `charts.ojo_alamo_vs_san_jose()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** A test event is one well on one date; some events are reported on two rows (e.g. separate drawdown results), so n counts values. Two Ojo Alamo well names, 'Cuba Independent Rural School Well No 1' and '21.1W.28.143', share a location and depth and may be the same well. Open violet diamonds are published San Jose Formation (Cuba Mesa Member) transmissivity from Blandford et al. (2025, Table 1): one well in their study area near Lindrith, north of Cuba, and a range from Stone et al. (1983) that the paper compiles; both converted from m²/day. Depth to water and the two right panels use log scales. Blank panels mean the value wasn't recorded. The tests are 49-73 years old and don't show which formation Cuba's municipal wells use today.
++**How to read it and method:** A test event is one well on one date; some events are reported on two rows (e.g. separate drawdown results), so n counts values. Two Ojo Alamo well names, 'Cuba Independent Rural School Well No 1' and '21.1W.28.143', share a location and depth and may be the same well. Open violet diamonds are published San Jose Formation transmissivity compiled in Blandford et al. (2025, Table 1): well SJ-2259, screened in the Cuba Mesa Member near Lindrith (estimated from specific capacity, assuming 70% well efficiency), and a range from two tests in Stone et al. (1983), location not given; both converted from m²/day. A value entered twice for the same test is drawn once. Depth to water and the two right panels use log scales. Blank panels mean the value wasn't recorded. The tests are 49-73 years old and don't show which formation Cuba's municipal wells use today.
+ 
+ **Findings:**
+ 
+ - **Measured:** Ojo Alamo depth to water: 18-24 ft at the well(s) within 5 km of Cuba, and 10-604 ft at wells 19-45 km away.
+-- **Measured:** San Jose: one test at one well (BIA-(RF)-033-2(10) Smelser Well, 9 km from Cuba, 1977): 51 ft to water, 206 ft deep, 100 ft²/day, inside the published Lindrith-area range of 43-118 ft²/day.
++- **Measured:** San Jose: one test at one well (BIA-(RF)-033-2(10) Smelser Well, 9 km from Cuba, 1977): 51 ft to water, 206 ft deep, 100 ft²/day. That is close to the one published Cuba Mesa Member value near Lindrith (101 ft²/day at well SJ-2259, estimated from specific capacity) and inside the San Jose range from Stone et al. (1983), 43-118 ft²/day.
+ - **Insufficient data:** Comparing the formations needs more (and recent) tests, plus the Ojo Alamo thickness and extent maps in USGS HA-720-B (dataset 5), which is a scanned map plate not yet digitized.
+ 
+ 
+@@ -430,7 +430,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ | | |
+ |---|---|
+ | Research questions | 7, 8, 9 |
+-| What is plotted | Each dot is one USGS field visit to station 08332525 (2019-2026); left by date (labeled with the month), right by month of year; not a continuous record |
++| What is plotted | One dot per USGS field visit, station 08332525, 2019-2026; not a continuous record |
+ | Scope | Cuba (measured at Cuba), surface water only (gage 2 km from the village center) |
+ | Data | USGS station 08332525, Rio Puerco at Cuba, NM (data/data4_channel-measurements.csv and data4_field-measurements.csv) |
+ | App page | Cuba case study |
+@@ -441,7 +441,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ **Findings:**
+ 
+ - **Measured:** 6 of 10 visits (2019-2026) found no measurable flow; flowing visits measured 6.89-20.4 ft³/s, all in Apr or May.
+-- **Hypothesis:** Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; ten visits are consistent with that but can't prove it.
++- **Hypothesis:** Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; 10 visits are consistent with that but can't prove it.
+ - **Insufficient data:** Spot visits can't show how many days a year the river has no flow, or any long-term trend.
+ 
+ 
+@@ -454,7 +454,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ | | |
+ |---|---|
+ | Research questions | 5, 8 |
+-| What is plotted | Monthly values at USGS 08317400, Rio Grande below Cochiti Dam, the only site with a long water-quality record in the data |
++| What is plotted | Monthly values at USGS 08317400, Rio Grande below Cochiti Dam, 2003-2026 (the only long water-quality record in the data) |
+ | Scope | Sandoval County, not Cuba: Rio Grande at Cochiti, about 73 km from Cuba |
+ | Data | USGS Water Data statistics, parameters 00095 and 00400 (also 00300, 63680 in the table), monthly (data/water_flow_data_sandoval_county_sources.csv (dataset 1), prepared in analysis/data.py) |
+ | App page | Water quality |
+@@ -495,9 +495,9 @@ Each section below is written from the chart itself, so it always matches the ap
+ 
+ ### 15. bernalillo_river_vs_well
+ 
+-![At Bernalillo, Well A's water level tended to rise in years with more river flow (ρ = +0.54, n = 17); the main well showed no clear link (ρ = +0.12)](figures/bernalillo_river_vs_well.png)
++![At Bernalillo, Well A's water level tended to rise in years when river flow increased (ρ = +0.54, n = 17); the main well showed no clear link (ρ = +0.12)](figures/bernalillo_river_vs_well.png)
+ 
+-**Takeaway:** At Bernalillo, Well A's water level tended to rise in years with more river flow (ρ = +0.54, n = 17); the main well showed no clear link (ρ = +0.12).
++**Takeaway:** At Bernalillo, Well A's water level tended to rise in years when river flow increased (ρ = +0.54, n = 17); the main well showed no clear link (ρ = +0.12).
+ 
+ | | |
+ |---|---|
+@@ -508,7 +508,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ | App page | Acequias |
+ | Code | `charts.bernalillo_river_vs_well()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** Separate panels share the year axis instead of one chart with two scales; their vertical scales differ (the main well spans about 17 ft, Well A about 3 ft). The scatters use changes from one year to the next, so the long-term drift in both records can't create a false match; water-level change is positive when the water table rose. Lines break where a year has fewer than 9 months of well data. The flow gage is about 41 km upstream of the wells (the closer Rio Grande near Bernalillo gage stopped in 1969).
++**How to read it and method:** Separate panels share the year axis instead of one chart with two scales; their vertical scales differ (the main well spans about 17 ft, Well A about 3 ft). The scatters use changes from one year to the next, so the long-term drift in both records can't create a false match; water-level change is positive when the water table rose. The two scatters also use different vertical scales. Lines break where a year has fewer than 9 months of well data. The flow gage is about 41 km upstream of the wells (the closer Rio Grande near Bernalillo gage stopped in 1969).
+ 
+ **Findings:**
+ 
+@@ -579,7 +579,7 @@ Each section below is written from the chart itself, so it always matches the ap
+ | App page | Data sources |
+ | Code | `charts.aquifer_sensitivity_classes()` in `analysis/charts.py` |
+ 
+-**How to read it and method:** Area shares use the table's Shape__Area column, whose units aren't stated; every row is in the same units, so the shares are valid even though the totals can't be labeled. Polygon counts and area shares differ because a few large polygons dominate. This describes the downloaded inventory, not Cuba.
++**How to read it and method:** Area shares use the table's Shape__Area column, whose units aren't stated (they appear to be square degrees, which shrink slightly northward), so the shares are approximate. Polygon counts and area shares differ because a few large polygons dominate. This describes the downloaded inventory, not Cuba.
+ 
+ **Findings:**
+ 
+diff --git a/docs/findings.md b/docs/findings.md
+index 3696aec..7b6bb27 100644
+--- a/docs/findings.md
++++ b/docs/findings.md
+@@ -17,7 +17,7 @@ Elsewhere in the county, where wells are monitored, the picture is mixed. Five o
+ | Research question | Short answer | Label |
+ |---|---|---|
+ | 1. Groundwater-level trends | Declines at Rio Rancho, Bernalillo, and Dome Road; recovery at the Sandia site; mixed changes at five re-measured Placitas wells | Measured |
+-| 2. Wells and aquifer units | Deeper wells usually reach water deeper down, with a wide spread; aquifer properties vary over 1,000-fold within formations | Measured |
++| 2. Wells and aquifer units | Where water is deeper, wells are drilled deeper, with a wide spread; within some formations, aquifer properties vary more than between formations | Measured |
+ | 3. Cuba depletion | No repeated water-level record near Cuba | Insufficient data |
+ | 4. Ojo Alamo vs San Jose | Too few tests (1953-1977) to compare; the one San Jose test matches published values; on the USGS map the Ojo Alamo is shallow at Cuba | Insufficient data |
+ | 5. Water quality and salinity | Rio Grande below Cochiti Dam is fresh and steady; no groundwater-quality data | Measured (river) / Insufficient data (groundwater) |
+@@ -49,14 +49,14 @@ Research question 1.
+ 
+ Research question 2.
+ 
+-- **Measured:** Median depth to water by record type: NMBGMR wells 53 ft (n=72); OSE aquifer tests 165 ft (n=104); OSE well logs 240 ft (n=5). *(chart 5: [well_depth_vs_water](analysis.md#5-well_depth_vs_water))*
++- **Measured:** Median depth to water by record type: NMBGMR wells 53 ft (n=72); OSE aquifer tests 165 ft (n=103); OSE well logs 240 ft (n=5). *(chart 5: [well_depth_vs_water](analysis.md#5-well_depth_vs_water))*
+ - **Measured:** Spearman ρ between well depth and depth to water: NMBGMR wells 0.64; OSE aquifer tests 0.63 (all records pooled: 0.73, inflated because the record types differ in depth). Record types with fewer than 10 wells aren't tested. *(chart 5: [well_depth_vs_water](analysis.md#5-well_depth_vs_water))*
+ - **Measured:** Median water column above the well bottom: 142 ft. 2 wells had water above land surface when tested (flowing artesian; plotted above 0). *(chart 5: [well_depth_vs_water](analysis.md#5-well_depth_vs_water))*
+-- **Measured:** Median depth to water by area (areas with ≥5 wells): Cochiti-Peña Blanca 22 ft; Cuba area (≤25 km) 95 ft; Placitas 116 ft; Elsewhere in county 180 ft; Jemez Springs-San Ysidro 212 ft; Bernalillo-Rio Rancho 375 ft. *(chart 6: [depth_by_area](analysis.md#6-depth_by_area))*
+-- **Measured:** Cuba area: 11 wells with a recorded level, 10-509 ft to water, all recorded 1957-2018. *(chart 6: [depth_by_area](analysis.md#6-depth_by_area))*
++- **Measured:** Median depth to water by area (areas with ≥5 wells): Cochiti-Peña Blanca 22 ft; Cuba area (≤25 km) 104 ft; Placitas 116 ft; Elsewhere in county 180 ft; Jemez Springs-San Ysidro 212 ft; Bernalillo-Rio Rancho 375 ft. *(chart 6: [depth_by_area](analysis.md#6-depth_by_area))*
++- **Measured:** Cuba area: 10 well records with a level (1 pair at the same spot may be one well), 10-509 ft to water, all recorded 1957-2018. *(chart 6: [depth_by_area](analysis.md#6-depth_by_area))*
+ - **Measured:** Median of all 108 tested wells with a value: 136 ft²/day (middle half 27.5-988; 22 wells have no recorded formation). *(chart 7: [formation_properties](analysis.md#7-formation_properties))*
+ - **Measured:** Among formations with ≥3 tested wells, the highest median is Alluvium and surface deposits (2,760 ft²/day) and the lowest is Point Lookout Sandstone (6.2 ft²/day). *(chart 7: [formation_properties](analysis.md#7-formation_properties))*
+-- **Measured:** Ojo Alamo: median of 4 wells 94.2 ft²/day, inside the middle half of all tested wells (27.5-988); too few wells to say it differs. *(chart 7: [formation_properties](analysis.md#7-formation_properties))*
++- **Measured:** Ojo Alamo: median of 4 wells 94.2 ft²/day, inside the middle half of all tested wells (27.5-988); with 4 wells, too few to say it differs. *(chart 7: [formation_properties](analysis.md#7-formation_properties))*
+ - **Insufficient data:** Only the aquifer tests record the formation; the NMBGMR and well-log files don't, so this chart can't say which aquifer each well uses. *(chart 5: [well_depth_vs_water](analysis.md#5-well_depth_vs_water))*
+ - **Insufficient data:** Areas mix record types and decades; differences may reflect different aquifers, land elevations, and dates, not just place. *(chart 6: [depth_by_area](analysis.md#6-depth_by_area))*
+ - **Insufficient data:** Most formations have fewer than 10 tested wells, many tested in the 1970s; a single new test can move a median a lot. *(chart 7: [formation_properties](analysis.md#7-formation_properties))*
+@@ -65,13 +65,13 @@ Research question 2.
+ 
+ Research questions 3 and 4.
+ 
+-- **Measured:** 10 of the tested wells within 25 km had a one-time depth to water recorded during their test (1957-1978), e.g. 18 ft at 0.7 km in 1957. Two of the well names may be the same well (same location and depth). *(chart 8: [cuba_area_map](analysis.md#8-cuba_area_map))*
++- **Measured:** 9 of the tested wells within 25 km had a one-time depth to water recorded during their test (1957-1978), e.g. 18 ft at 0.7 km in 1957. 4 pairs of well records share a location and may be one well. *(chart 8: [cuba_area_map](analysis.md#8-cuba_area_map))*
+ - **Measured:** The nearest well with repeated water-level measurements is 38 km away (WL-0062, 2 readings in 2017). *(chart 8: [cuba_area_map](analysis.md#8-cuba_area_map))*
+ - **Measured:** Nearest repeated water-level record: WL-0062 (NMBGMR well measurements), 38 km, 2 readings in 2017; nearest USGS monitoring well: 65 km. *(chart 9: [cuba_nearest_records](analysis.md#9-cuba_nearest_records))*
+ - **Measured:** Nearest aquifer test: 0.7 km (1957), a one-time record. *(chart 9: [cuba_nearest_records](analysis.md#9-cuba_nearest_records))*
+-- **Measured:** On the USGS map, Cuba sits at the southeastern end of the Ojo Alamo outcrop band, where the top of the sandstone is shallow; it deepens northward along the basin's eastern edge, past the 1,000-ft and 3,000-ft lines (read from the published map). *(chart 10: [ojo_alamo_depth_map](analysis.md#10-ojo_alamo_depth_map))*
++- **Measured:** Published map, read by eye: Cuba sits at the southeastern end of the Ojo Alamo outcrop band, where the top of the sandstone is shallow; it deepens northward along the basin's eastern edge, past the 1,000-ft and 3,000-ft lines (read from the published map). *(chart 10: [ojo_alamo_depth_map](analysis.md#10-ojo_alamo_depth_map))*
+ - **Measured:** Ojo Alamo depth to water: 18-24 ft at the well(s) within 5 km of Cuba, and 10-604 ft at wells 19-45 km away. *(chart 11: [ojo_alamo_vs_san_jose](analysis.md#11-ojo_alamo_vs_san_jose))*
+-- **Measured:** San Jose: one test at one well (BIA-(RF)-033-2(10) Smelser Well, 9 km from Cuba, 1977): 51 ft to water, 206 ft deep, 100 ft²/day, inside the published Lindrith-area range of 43-118 ft²/day. *(chart 11: [ojo_alamo_vs_san_jose](analysis.md#11-ojo_alamo_vs_san_jose))*
++- **Measured:** San Jose: one test at one well (BIA-(RF)-033-2(10) Smelser Well, 9 km from Cuba, 1977): 51 ft to water, 206 ft deep, 100 ft²/day. That is close to the one published Cuba Mesa Member value near Lindrith (101 ft²/day at well SJ-2259, estimated from specific capacity) and inside the San Jose range from Stone et al. (1983), 43-118 ft²/day. *(chart 11: [ojo_alamo_vs_san_jose](analysis.md#11-ojo_alamo_vs_san_jose))*
+ - **Hypothesis:** Because the Ojo Alamo is shallow at Cuba, shallow wells there can reach it, as the 148-ft Cuba school well did in 1957; whether Cuba's municipal wells use it today isn't established. *(chart 10: [ojo_alamo_depth_map](analysis.md#10-ojo_alamo_depth_map))*
+ - **Insufficient data:** Without repeated water levels near Cuba, the data can't confirm or rule out severe decline in Cuba's aquifer (research question 3). *(chart 8: [cuba_area_map](analysis.md#8-cuba_area_map))*
+ - **Insufficient data:** Answering research question 3 needs Cuba's municipal well records: well IDs, formation, pumping, and water-level history. *(chart 9: [cuba_nearest_records](analysis.md#9-cuba_nearest_records))*
+@@ -94,7 +94,7 @@ Research questions 6 and 7.
+ - **Measured:** 6 of 10 visits (2019-2026) found no measurable flow; flowing visits measured 6.89-20.4 ft³/s, all in Apr or May. *(chart 12: [rio_puerco_visits](analysis.md#12-rio_puerco_visits))*
+ - **Measured:** 2001-2025: median monthly flow is zero in Dec, Jan, Feb in both canals; the Cochiti East Side Main Canal peaks at about 86 ft³/s in Jun. *(chart 14: [canal_seasonal](analysis.md#14-canal_seasonal))*
+ - **Measured:** Year-to-year change in Well A water level vs change in river flow: Spearman ρ = +0.54 (n = 17 year pairs, permutation p = 0.027); main well ρ = +0.12 (p = 0.57). With two wells tested, a Bonferroni-adjusted p for Well A is 0.053, so the link is suggestive, not firm. *(chart 15: [bernalillo_river_vs_well](analysis.md#15-bernalillo_river_vs_well))*
+-- **Hypothesis:** Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; ten visits are consistent with that but can't prove it. *(chart 12: [rio_puerco_visits](analysis.md#12-rio_puerco_visits))*
++- **Hypothesis:** Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; 10 visits are consistent with that but can't prove it. *(chart 12: [rio_puerco_visits](analysis.md#12-rio_puerco_visits))*
+ - **Hypothesis:** Well A (water about 31 ft down) may respond to river-fed recharge near the Rio Grande, while the main well (about 52 ft down) follows a slower long-term decline; well construction details would be needed to confirm. *(chart 15: [bernalillo_river_vs_well](analysis.md#15-bernalillo_river_vs_well))*
+ - **Insufficient data:** Spot visits can't show how many days a year the river has no flow, or any long-term trend. *(chart 12: [rio_puerco_visits](analysis.md#12-rio_puerco_visits))*
+ - **Insufficient data:** These are two USGS-gaged irrigation canals, not the acequia inventory: acequia locations, service areas, and sources (research question 6) are still to be collected. *(chart 14: [canal_seasonal](analysis.md#14-canal_seasonal))*
+@@ -104,8 +104,8 @@ Research questions 6 and 7.
+ 
+ Research questions 8 and 9.
+ 
+-- **Measured:** 272 mapped sites: 96 water-level records, 154 well construction and aquifer tests, 22 surface-water stations. *(chart 1: [county_coverage_map](analysis.md#1-county_coverage_map))*
+-- **Measured:** Within 25 km of Cuba: 18 sites, none of them water-level monitoring sites; they are one-time aquifer tests or well logs and the Rio Puerco stream gage. *(chart 1: [county_coverage_map](analysis.md#1-county_coverage_map))*
++- **Measured:** 271 mapped sites: 96 water-level records, 153 well construction and aquifer tests, 22 surface-water stations. *(chart 1: [county_coverage_map](analysis.md#1-county_coverage_map))*
++- **Measured:** Within 25 km of Cuba: 17 sites, none of them water-level monitoring sites; they are one-time aquifer tests or well logs and the Rio Puerco stream gage. *(chart 1: [county_coverage_map](analysis.md#1-county_coverage_map))*
+ - **Measured:** USGS monitoring sites cover 1998-2026 (all 4 from 1999); NMBGMR wells were measured in 1997-1999 and 2016-2019, with nothing in between. *(chart 16: [coverage_timeline](analysis.md#16-coverage_timeline))*
+ - **Measured:** Cuba-area well records come from 9 separate years (1957-2018); the only recent Cuba-area data are Rio Puerco visits (2019-2026). *(chart 16: [coverage_timeline](analysis.md#16-coverage_timeline))*
+ - **Measured:** 613 polygons: High 152, Moderate 339, Less 122; share of listed area: High 48%, Moderate 36%, Less 16%. *(chart 18: [aquifer_sensitivity_classes](analysis.md#18-aquifer_sensitivity_classes))*
+diff --git a/docs/streamlit-app.md b/docs/streamlit-app.md
+index f9930a2..0b2fa39 100644
+--- a/docs/streamlit-app.md
++++ b/docs/streamlit-app.md
+@@ -16,7 +16,7 @@ Each page shows its charts with a one-line takeaway, what is plotted, the chart'
+ | County map | Every site in the project's datasets on a map, colored by what it measures | 8, 1 |
+ | Groundwater levels | Monthly water levels at the 9 USGS monitoring wells, their trends, and Placitas wells re-measured after 20 years | 1 |
+ | Wells and aquifers | Well depth vs depth to water, depth to water by area, and aquifer-test properties by formation (choose the measurement from a menu) | 2, 4 |
+-| Cuba case study | Key numbers, a short answer to research question 3, a map of sites near Cuba, the nearest record in each dataset, Ojo Alamo vs San Jose tests, and Rio Puerco visits | 3, 4 |
++| Cuba case study | Key numbers, a short answer to research question 3, a map of sites near Cuba, the nearest record in each dataset, the USGS Ojo Alamo depth map around Cuba, Ojo Alamo vs San Jose tests, and Rio Puerco visits | 3, 4 |
+ | Water quality | River specific conductance and pH at Cochiti, and a note on the missing groundwater-quality data | 5 |
+ | Acequias | Seasonal flow in the two irrigation canals at Cochiti, and river flow vs well levels at Bernalillo | 6, 7 |
+ | Data sources | Dataset list and links, a timeline of monitoring coverage, a dataset-by-question evidence matrix, aquifer-sensitivity classes, and a table of water-stress indicators | 8, 9 |
+diff --git a/report/report.tex b/report/report.tex
+index 7440974..55c0cff 100644
+--- a/report/report.tex
++++ b/report/report.tex
+@@ -405,31 +405,33 @@ water utility pumped less groundwater and water levels rose across the Albuquerq
+ \citep{ritchie2019}; these data alone cannot show the cause (\emph{Hypothesis}).
+ 
+ In the Placitas area, only five NMBGMR wells were measured both in 1997--98 and in 2018--19. Three
+-changed by 5\,ft or less, one (PC-014) is 51\,ft deeper, and one (PC-025) is 57\,ft shallower;
++changed by 5\,ft or less (two of them from baselines flagged as recently pumped), one (PC-014) is 51\,ft deeper, and one (PC-025) is 57\,ft shallower;
+ PC-025's 1990s readings rose steadily after a first reading flagged as recently pumped, so its
+ 1990s average is not a stable baseline. Five wells cannot establish an area-wide trend
+ (\emph{Insufficient data}).
+ 
+ \subsection{Wells and Aquifer Units}
+-Where water is deeper, wells are drilled deeper (Spearman $\rho=0.63$--$0.64$ within each record
+-type), but the spread is wide: half of 181 wells have water between 41 and 240\,ft below land.
++Where water is deeper, wells are drilled deeper (Spearman $\rho=0.63$--$0.64$ within the two larger
++record types), but the spread is wide: half of 180 wells have water between 41 and 241\,ft below land.
+ Among recorded wells, depth to water was smallest around Cochiti--Pe\~{n}a Blanca and largest around
+ Bernalillo--Rio Rancho, though the groups mix record types and decades. Aquifer properties vary
+-more within formations than between them: transmissivity values within the Madera Limestone span
+-almost five orders of magnitude. Only the aquifer-test file records the formation, so the other well
++widely: within three formations, transmissivity values span more than the spread between formation
++medians, up to almost five orders of magnitude in the Madera Limestone. Only the aquifer-test file records the formation, so the other well
+ records cannot be assigned to an aquifer unit (\emph{Insufficient data}).
+ 
+ \subsection{Cuba Case Study}
+-\begin{figure}[t]
++\begin{figure*}[t]
+   \centering
+   % Made by analysis/charts.py (cuba_nearest_records); remake with `python -m analysis.export_figures`.
+-  \includegraphics[width=\linewidth]{cuba_nearest_records}
++  \includegraphics[width=0.8\textwidth]{cuba_nearest_records}
+   \caption{Distance from Cuba to the nearest site in each dataset. The nearest well with repeated
+   water-level measurements is 38\,km away; within 25\,km there are only one-time aquifer tests
+-  (1957--1979), one well log, and the Rio Puerco stream gage. Source: all project datasets.}
++  (1957--1979), one well log, and the Rio Puerco stream gage. Distances are straight-line from the
++  approximate village center. Sources: USGS monitoring wells and surface-water statistics, NMBGMR
++  groundwater levels, NM OSE aquifer tests and well logs, and USGS station 08332525.}
+   \label{fig:nearest}
+-\end{figure}
+-Within 25\,km of Cuba, the collected data contain 16 wells with one-time aquifer tests
++\end{figure*}
++Within 25\,km of Cuba, the collected data contain 15 wells with one-time aquifer tests
+ (1957--1979), one well log (2018), and the Rio Puerco stream gage. Ten of the tested wells recorded
+ a depth to water on test day, but no well near Cuba has been measured repeatedly; the nearest well
+ with repeated water-level measurements is 38\,km away, and the nearest USGS monitoring well 65\,km
+@@ -441,8 +443,8 @@ On the USGS map of the Ojo Alamo Sandstone \citep{thorn1990}, Cuba sits at the s
+ the formation's outcrop, where it is shallow, and its top deepens northward past 1{,}000 and
+ 3{,}000\,ft. Only eight aquifer-test events in the county name the Ojo Alamo (seven) or the San Jose
+ Formation (one), all from 1953--1977: too few to describe either formation, let alone compare them.
+-The single San Jose test (100\,ft$^2$/day) falls within the transmissivity range published for the
+-formation's Cuba Mesa Member \citep{blandford2025}.
++The single San Jose test (100\,ft$^2$/day) is close to the one published Cuba Mesa Member value near
++Lindrith and within a San Jose range from earlier tests, both compiled by \citet{blandford2025}.
+ 
+ \subsection{Water Quality}
+ No groundwater-quality data were collected, and none exist for Cuba in the project's datasets
+@@ -461,7 +463,7 @@ $p=0.03$), while the main well showed no clear link; with two wells tested, the
+ suggestive rather than firm.
+ 
+ \subsection{Monitoring Coverage and Data Gaps}
+-Monitoring is concentrated along the Rio Grande: 85\% of the 272 mapped sites lie east of
++Monitoring is concentrated along the Rio Grande: 86\% of the 271 mapped sites lie east of
+ 106.75\textdegree{}\,W (Fig.~\ref{fig:map}). Groundwater levels have been monitored every year only
+ since 1999, and only at four sites in the east of the county; the Cuba area has no water-level
+ monitoring or water-quality records in the collected data. According to the dataset briefs, no

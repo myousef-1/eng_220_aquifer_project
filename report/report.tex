@@ -259,10 +259,15 @@ them were not available (Section~\ref{sec:limits}).
 % ---------------------------------------------------------------------
 \begin{figure*}[t]
   \centering
-  \figplaceholder[2.2in]{Figure 1 (to be added by the analysis lead): county map showing
-  water-level monitoring wells, aquifer-test wells colored by formation, and the Rio Puerco gage,
-  with Cuba marked.}
-  \caption{\draftnote{Caption to be written.}}
+  % Made by analysis/charts.py (county_coverage_map); remake with `python -m analysis.export_figures`.
+  \includegraphics[width=0.82\textwidth]{county_coverage_map}
+  \caption{Every mapped site in the project's datasets, colored by what it measures: water-level
+  records (USGS monitoring wells and NMBGMR wells), well construction and aquifer tests (OSE aquifer
+  tests and well logs), and surface-water stations (USGS stream, canal, and reservoir sites, including
+  the Rio Puerco at Cuba). Most sites lie east of 106.75\textdegree{}\,W along the Rio Grande; within
+  25\,km of Cuba there are only one-time aquifer tests, one well log, and one stream gage. A dot is a
+  site with any record, not necessarily active monitoring. Outline: Sandoval County (simplified, US
+  Census Bureau). Town locations approximate.}
   \label{fig:map}
 \end{figure*}
 
@@ -438,7 +443,33 @@ The analysis focuses on measurable indicators, such as depth to water, water-lev
 time, well depth, aquifer unit, and hydraulic properties from aquifer tests, rather than a full
 hydrologic model. Where records
 are sparse, the results say so instead of filling the gaps.
-\draftnote{Analysis lead: describe the method used for each research question.}
+All analysis code is in the \texttt{analysis/} folder of the repository. Each chart is a Python
+function that returns the figure together with its takeaway, caption, scope, and labeled findings,
+so the app, this report, and the documentation show the same numbers; every chart is reproduced on
+the documentation site's \href{https://pdjordj11.github.io/eng_220_aquifer_project/analysis/}{Analysis page}. Datasets not yet cleaned (NMBGMR water levels, the Rio
+Puerco visits, and the OSE well logs) receive only minimal preparation in code, such as converting
+UTM zone~13 coordinates to latitude and longitude; the raw files are never changed.
+
+\emph{Water-level trends (RQ1).} Monthly mean depths to water were averaged into annual means,
+using only years with at least 9 months of data. Each well's trend is Sen's slope (the median of all
+pairwise slopes), and its significance is the Mann--Kendall test; a well is called falling or rising
+only when $p<0.05$ \citep{helsel2020}. Trends are reported for the full record and for 2016--2025.
+Because annual levels are serially correlated, the $p$-values and intervals are optimistic.
+
+\emph{Wells and aquifer units (RQ2, RQ4).} Each well contributes one point: the median NMBGMR
+reading, the first OSE aquifer test, or the depth where water was first found in a well log. Wells
+were grouped by the nearest of seven towns. Aquifer-test properties were compared by recorded
+formation, using one median per well. The scanned USGS map of the Ojo Alamo Sandstone
+\citep{thorn1990} was read by eye, not digitized.
+
+\emph{Cuba case study (RQ3).} The ``Cuba area'' is defined as within 25\,km of the village center.
+For every dataset, we measured the distance from Cuba to its nearest site and recorded what kind of
+record it holds.
+
+\emph{Coverage and indicators (RQ5, RQ6).} Every site in every dataset was mapped and counted by
+year to show where and when monitoring exists, and each dataset was rated against each research
+question from its brief. Indicators were kept only where they can be computed from the data, each
+with the place it applies to and a stated confidence.
 
 \subsection{Classifying Findings}
 Each finding is labeled as one of the following:
@@ -457,24 +488,89 @@ and documentation are maintained on GitHub \citep{team23_repo}.
 \section{Results}\label{sec:results}
 % =====================================================================
 \subsection{Groundwater Levels}
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \figplaceholder[1.25in]{Figure 2 (to be added): time series of groundwater levels for wells with
-  repeated measurements.}
-  \caption{\draftnote{Caption to be written.}}
+  % Made by analysis/charts.py (groundwater_hydrographs); remake with `python -m analysis.export_figures`.
+  \includegraphics[width=\textwidth]{groundwater_hydrographs}
+  \caption{Monthly mean depth to water at the nine USGS monitoring wells, 1998--2026 (axis flipped:
+  up is a higher water table). Wells marked A or B share a location but are measured at a different
+  depth. Every panel spans the same vertical range, so steepness can be compared. Five of the nine
+  wells fell over their records; at the Sandia site the water level has risen about 13\,ft since 2007.
+  Scope: Sandoval County, 65--95\,km from Cuba (not Cuba). Source: USGS Water Data statistics,
+  parameter 72019, cleaned by J.~Wauneka.}
   \label{fig:levels}
-\end{figure}
-\draftnote{RQ1 (Fig.~\ref{fig:levels}).}
+\end{figure*}
+The nine USGS monitoring wells sit at four sites between Rio Rancho and Cochiti, 65--95\,km from
+Cuba (Fig.~\ref{fig:levels}). Over their full records, five wells fell, three rose, and one showed
+no clear trend. Water levels at Lincoln Middle School (Rio Rancho) fell 0.36--0.40\,ft per year and
+were still falling in 2016--2025, as was the Dome Road well near Cochiti. The Bernalillo site's main
+well fell about 0.5\,ft per year over its record but showed no clear trend in 2016--2025. At the
+Sandia site the water level fell until 2007 and then rose about 13\,ft by 2025 (\emph{Measured}).
+That recovery coincides with the San Juan--Chama Drinking Water Project, after which the Albuquerque
+water utility pumped less groundwater and water levels rose across the Albuquerque area
+\citep{ritchie2019}; these data alone cannot show the cause (\emph{Hypothesis}).
+
+In the Placitas area, only five NMBGMR wells were measured both in 1997--98 and in 2018--19. Three
+changed by 5\,ft or less (two of them from baselines flagged as recently pumped), one (PC-014) is 51\,ft deeper, and one (PC-025) is 57\,ft shallower;
+PC-025's 1990s readings rose steadily after a first reading flagged as recently pumped, so its
+1990s average is not a stable baseline. Five wells cannot establish an area-wide trend
+(\emph{Insufficient data}).
 
 \subsection{Wells and Aquifer Units}
-\draftnote{RQ2.}
+Where water is deeper, wells are drilled deeper (Spearman $\rho=0.63$--$0.64$ within the two larger
+record types), but the spread is wide: half of 180 wells have water between 41 and 241\,ft below land.
+Among recorded wells, depth to water was smallest around Cochiti--Pe\~{n}a Blanca and largest around
+Bernalillo--Rio Rancho, though the groups mix record types and decades. Aquifer properties vary
+widely: within three formations, transmissivity values span more than the spread between formation
+medians, up to almost five orders of magnitude in the Madera Limestone. Only the aquifer-test file records the formation, so the other well
+records cannot be assigned to an aquifer unit (\emph{Insufficient data}).
 
 \subsection{Cuba Case Study}
-\draftnote{RQ3 and RQ4. Include the Rio Puerco at Cuba stream measurements as surface-water
-context, not as evidence about groundwater.}
+\begin{figure*}[t]
+  \centering
+  % Made by analysis/charts.py (cuba_nearest_records); remake with `python -m analysis.export_figures`.
+  \includegraphics[width=0.8\textwidth]{cuba_nearest_records}
+  \caption{Distance from Cuba to the nearest site in each dataset. The nearest well with repeated
+  water-level measurements is 38\,km away; within 25\,km there are only one-time aquifer tests
+  (1957--1979), one well log, and the Rio Puerco stream gage. Distances are straight-line from the
+  approximate village center. Sources: USGS monitoring wells and surface-water statistics, NMBGMR
+  groundwater levels, NM OSE aquifer tests and well logs, and USGS station 08332525.}
+  \label{fig:nearest}
+\end{figure*}
+Within 25\,km of Cuba, the collected data contain 15 wells with one-time aquifer tests
+(1957--1979), one well log (2018), and the Rio Puerco stream gage. Nine of the tested wells recorded
+a depth to water on test day, but no well near Cuba has been measured repeatedly; the nearest well
+with repeated water-level measurements is 38\,km away, and the nearest USGS monitoring well 65\,km
+(Fig.~\ref{fig:nearest}). The data therefore cannot confirm or rule out severe decline in Cuba's
+aquifer (\emph{Insufficient data}). Answering RQ3 requires Cuba's municipal well records: well IDs,
+producing formations, pumping volumes, and water-level histories.
+
+On the USGS map of the Ojo Alamo Sandstone \citep{thorn1990}, Cuba sits at the southeastern end of
+the formation's outcrop, where it is shallow, and its top deepens northward past 1{,}000 and
+3{,}000\,ft. Only eight aquifer-test events in the county name the Ojo Alamo (seven) or the San Jose
+Formation (one), all from 1953--1977: too few to describe either formation, let alone compare them.
+The single San Jose test (100\,ft$^2$/day) is close to the one published Cuba Mesa Member value near
+Lindrith and within a San Jose range from earlier tests, both compiled by \citet{blandford2025}.
+
+As surface-water context, not evidence about groundwater, the Rio Puerco at Cuba had measurable
+flow on all four visits in April and May and on none of the six visits from August to March,
+2019--2026 \citep{usgs_riopuerco}. Spot visits cannot show how often the river runs dry.
 
 \subsection{Monitoring Coverage and Data Gaps}
-\draftnote{RQ5.}
+Monitoring is concentrated along the Rio Grande: 86\% of the 271 mapped sites lie east of
+106.75\textdegree{}\,W (Fig.~\ref{fig:map}). Groundwater levels have been monitored every year only
+since 1999, and only at four sites in the east of the county; the collected data have no
+water-level monitoring in the Cuba area. According to the dataset briefs, no dataset gives more than
+limited support for RQ3, the question about Cuba itself.
+
+\subsection{Groundwater-Stress Indicators}
+Five indicators can be computed from the collected data without overstating their certainty: the
+2016--2025 water-level trend at the monitored wells (four of the seven wells with enough recent data
+were falling and two rising), the full-record water-level change at the same wells ($-16$ to
+$+8$\,ft), the distance from Cuba to the nearest repeated water-level record (38\,km), the share of
+Rio Puerco visits with flow (4 of 10, river only), and the number and age of aquifer tests near Cuba
+(15 wells, 1957--1979). Each applies only where its data were collected, and none measures how much
+groundwater is left; the Streamlit app lists them with their scope and confidence (RQ6).
 
 % =====================================================================
 \section{Discussion}\label{sec:discussion}
@@ -497,7 +593,19 @@ needed for them were not obtained during the project:
         the Rio Puerco gage, and the nearest well in the water-level datasets is about 24 miles
         away.
 \end{itemize}
-\draftnote{Add the other data gaps and what the data can't support.}
+The data that were collected also limit what the results can support:
+\begin{itemize}
+  \item Almost nothing measures Cuba's groundwater: the nearest well measured more than once is
+        38\,km away, so RQ3 cannot be answered with these data.
+  \item Four monitoring sites carry the county's trend results; they are indicators at those
+        points, not a county average or a measure of remaining supply.
+  \item Most aquifer tests are decades old and record conditions on the day of the test, and only
+        eight name the Ojo Alamo Sandstone or San Jose Formation.
+  \item No geologic-region layer was available, so wells are grouped by nearest town and by the
+        formation named in aquifer tests.
+  \item Trend tests assume independent years; serial correlation makes them look more certain than
+        they are.
+\end{itemize}
 
 % =====================================================================
 \section{Conclusions}\label{sec:conclusions}
@@ -522,7 +630,9 @@ needed for them were not obtained during the project:
         each, plus a plotting guide comparing them.
   \item[J.~Wauneka:] data cleaning: wrote the MATLAB script that produces the cleaned
         groundwater-level and aquifer-test files.
-  \item[M.~Watkins:] analysis code and visualizations.
+  \item[M.~Watkins:] analysis code and visualizations: wrote the analysis package (data loaders,
+        trend statistics, and 15 charts with labeled findings) that feeds the app, this report's
+        figures, and the documentation site.
   \item[M.~Yousef:] GitHub workflow and the Streamlit app.
 \end{description}
 
