@@ -1,9 +1,12 @@
 """Make the chart images shown in the repository's README.md.
 
-Each chart is drawn twice, with a transparent background: dark text for GitHub's
-light theme (``<key>_light.png``) and light text for its dark theme
-(``<key>_dark.png``). README.md shows the right one for each reader with a
-``<picture>`` element. The charts come from ``analysis/charts.py``, so the numbers
+Each chart is drawn twice: on GitHub's light background with dark text
+(``<key>_light.png``) and on its dark background with light text
+(``<key>_dark.png``), each as a card with rounded corners and a thin border.
+README.md shows the one that matches the reader's light or dark setting with a
+``<picture>`` element. That setting comes from the reader's device, so a reader
+whose GitHub theme differs from their device still gets a readable card, just
+in the other theme. The charts come from ``analysis/charts.py``, so the numbers
 match the app, the report, and the documentation site.
 
 Run from the repository root after the charts change:
@@ -21,7 +24,7 @@ import io  # noqa: E402
 
 import numpy as np  # noqa: E402
 import plotly.graph_objects as go  # noqa: E402
-from PIL import Image  # noqa: E402
+from PIL import Image, ImageDraw  # noqa: E402
 
 from analysis import charts  # noqa: E402
 from analysis.charts import _plot_left_px, _wrap  # noqa: E402
@@ -30,6 +33,8 @@ from analysis.theme import palette, template_name  # noqa: E402
 README_CHARTS = ["groundwater_hydrographs", "cuba_area_map", "county_coverage_map"]
 OUT_DIR = Path(__file__).resolve().parent
 CLEAR = "rgba(0,0,0,0)"
+# GitHub's page background and border colors in its light and dark themes
+CARD = {False: ("#ffffff", "#d0d7de"), True: ("#0d1117", "#30363d")}
 # A map style with no tiles and a see-through background (the charts' static maps
 # otherwise use Plotly's "white-bg" style, which stays white in the dark version).
 CLEAR_MAP_STYLE = {"version": 8, "sources": {}, "layers": [
@@ -99,6 +104,23 @@ def remove_map_attribution_box(png: bytes) -> bytes:
     return out.getvalue()
 
 
+def card(png: bytes, dark: bool, radius: int = 24, border: int = 2) -> bytes:
+    """Put the transparent chart on GitHub's background color for its theme, with
+    rounded corners and a thin border, so it reads as a figure on any page."""
+    bg, line = CARD[dark]
+    chart = Image.open(io.BytesIO(png)).convert("RGBA")
+    w, h = chart.size
+    out = Image.new("RGBA", (w, h), bg)
+    out.alpha_composite(chart)
+    ImageDraw.Draw(out).rounded_rectangle((0, 0, w - 1, h - 1), radius, outline=line, width=border)
+    big = Image.new("L", (w * 4, h * 4), 0)  # drawn large and shrunk, for smooth corners
+    ImageDraw.Draw(big).rounded_rectangle((0, 0, w * 4 - 1, h * 4 - 1), radius * 4, fill=255)
+    out.putalpha(big.resize((w, h), Image.LANCZOS))
+    buf = io.BytesIO()
+    out.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
 if __name__ == "__main__":
     for key in README_CHARTS:
         for dark in (False, True):
@@ -108,5 +130,5 @@ if __name__ == "__main__":
             png = fig.to_image(format="png", scale=2)
             if any(t.type == "scattermap" for t in fig.data):
                 png = remove_map_attribution_box(png)
-            path.write_bytes(png)
+            path.write_bytes(card(png, dark))
             print(f"  wrote {path.relative_to(ROOT)}")
