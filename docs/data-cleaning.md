@@ -45,7 +45,7 @@ In MATLAB, set the current folder to the repository's root folder (the one that 
     clean_csvs('groundwater')   % groundwater levels only
     clean_csvs('aquifer')       % aquifer tests only
 
-The script reads `data/water_flow_data_sandoval_county_sources.csv` (an identical copy of dataset 1) and `data/ose_aquifer_test_wells.csv`, and writes to `data/clean/`. As it runs, it prints checks such as row counts, duplicate rows, and the list of formation names, so problems are easy to spot.
+The script reads `data/water_flow_data_sandoval_county_sources.csv` (dataset 1) and `data/ose_aquifer_test_wells.csv`, and writes to `data/clean/`. As it runs, it prints checks such as row counts, duplicate rows, and the list of formation names, so problems are easy to spot.
 
 ## Where files go
 

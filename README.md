@@ -1,9 +1,13 @@
 # Beneath the Mesa
 ### Assessing Aquifer and Well Water Resources Across Sandoval County, New Mexico
 
-**ENG 220 – Team 23**
+**ENG 220 – Team 23 · University of New Mexico · Instructor: Ramiro Jordan**
 
 **[Live app](https://eng220aquiferproject.streamlit.app/)** | **[Documentation site](https://pdjordj11.github.io/eng_220_aquifer_project/)** | **[Slides and video](https://pdjordj11.github.io/eng_220_aquifer_project/presentation/)** | **[Report](https://pdjordj11.github.io/eng_220_aquifer_project/report/)**
+
+## About the Project
+
+This project uses public groundwater data to assess aquifers and wells across Sandoval County, New Mexico, with the Village of Cuba as a case study. It tests what the available records show about groundwater levels, wells and aquifer units, the Ojo Alamo Sandstone and San Jose Formation near Cuba, and monitoring coverage, and labels every finding as *Measured*, *Hypothesis*, or *Insufficient data*. The work follows a peace-engineering approach: an open, reproducible analysis that gives residents, the village, and state agencies a shared set of facts about their water. The research questions, datasets, methods, and findings are on the [documentation site](https://pdjordj11.github.io/eng_220_aquifer_project/).
 
 ## Team Roles
 
@@ -79,14 +83,14 @@ app_pages/           One file per page of the Streamlit app
 analysis/            Analysis code: data loaders, trend statistics, and one function per chart (see analysis/README.md)
 requirements.txt     Python packages the live app installs
 mkdocs.yml           Documentation site settings
-data/                Raw datasets as downloaded (never edited), plus the county outline used on the maps
+data/                Raw datasets as downloaded (never edited), plus the county outline used on the maps (see data/README.md)
 data/clean/          Cleaned datasets, made by the scripts in cleaning/
 cleaning/            Data cleaning scripts (MATLAB)
 docs/                Documentation site pages (MkDocs)
 docs/figures/        Chart images for the documentation site, made by analysis/export_figures.py
 docs/files/          Presentation slides, report PDF, dataset briefs, and other downloads
 report/              Final report LaTeX source and figures (see report/README.md)
-project_notes/       Proposal, deadlines, and notes
+project_notes/       Project proposal, deadlines, and resource links
 .devcontainer/       Codespaces setup
 ```
 

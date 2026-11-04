@@ -44,4 +44,6 @@ Hover over or tap a task to see its dates.
 
 ## Final · Mon, Nov 16
 
-*Upcoming:* Streamlit app (Nov 10); final report (Nov 14); presentation slides and team video, both submitted on Canvas by 12 PM on Nov 16; in-class presentation on Thu, Nov 19.
+- Final report drafted on Nov 4: every section written, with Micah's figures, citations to Dylan's dataset briefs, and every source link checked (see [Final report](report.md))
+
+*Upcoming:* Streamlit app (Nov 10); final report finished (Nov 14); presentation slides and team video, both submitted on Canvas by 12 PM on Nov 16; in-class presentation on Thu, Nov 19.

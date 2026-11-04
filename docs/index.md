@@ -21,6 +21,10 @@ The study works at two levels:
 
 The analysis focuses on measurable indicators such as depth to water, water-level change over time, well depth, aquifer unit, and hydraulic properties from aquifer tests, rather than a full hydrologic model. Where records are sparse, the results say so instead of filling the gaps.
 
+## Peace engineering
+
+The project follows a peace-engineering approach: using engineering and science to support peace. Disagreements over water often begin with disagreement about the facts, so the project combines scattered public records into one open, reproducible analysis, labels every finding by how certain it is, and publishes the data, code, and dashboard for residents, the Village of Cuba, and state agencies to use. It also makes an equity issue visible: monitoring is concentrated where most people live, while small rural communities such as Cuba, which rely on their own wells, have the least information about their aquifers.
+
 ## Research questions
 
 1. How have groundwater levels changed at monitored wells in Sandoval County, and which wells show sustained decline, stability, or recovery?

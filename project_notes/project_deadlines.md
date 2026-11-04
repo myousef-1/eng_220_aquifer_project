@@ -1,13 +1,12 @@
-First-quarter deadline is Monday Oct. 12th
+# Project deadlines
 
-Midpoint deadline is Friday Oct. 23rd
+| Date | Deadline |
+|---|---|
+| Mon, Oct 12 | First-quarter checkpoint |
+| Fri, Oct 23 | Midpoint checkpoint |
+| Tue, Nov 3 | Three-quarter checkpoint |
+| Tue, Nov 10 | Streamlit app finished (team deadline) |
+| Mon, Nov 16, 12:00 PM | Final project due. The Prime Minister submits the presentation slides (.pptx) and the team video on Canvas. Late submissions get 0. |
+| Thu, Nov 19 | In-class presentation |
 
-3/4 deadline is Tuesday Nov. 3rd
-
-Project due date Monday Nov. 16th
-
-Team video and presentation slides due on Canvas Monday Nov. 16th at 12:00 PM. Late submissions get 0.
-
-In-class presentation Thursday Nov. 19th
-
-Presentation slides: every team member must submit their own copy of the .pptx on Canvas. Group submissions don't count.
+Teams present in class on Nov 17, 19, and 24 and Dec 1 and 3; the Prime Minister picks the team's day through the course's Google form.

@@ -33,4 +33,4 @@ I wrote the analysis code and made the project's charts. All of it lives in the 
 
 ### Petar Djordjevic
 
-*To be written.*
+As Prime Minister, I coordinated the team, its schedule, and its deliverables, and I submit the team's slides and video on Canvas. I built and maintain this documentation site and the repository's README files, and I narrowed the proposal's nine research questions to the six that the collected data can answer. I wrote the final report in LaTeX, bringing together Dylan's dataset briefs, James's cleaned data, and Micah's figures with background research on Cuba's water system and a peace-engineering perspective. I also built the presentation slides and edit the team video. Details are on the [Final report](report.md) and [Presentation and video](presentation.md) pages.
