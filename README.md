@@ -104,7 +104,12 @@ report/              Final report LaTeX source and figures (see report/README.md
 project_notes/       Project proposal, deadlines, and resource links
 .devcontainer/       Codespaces setup
 .github/readme/      Chart images for this README in light and dark versions, made by make_images.py
+LICENSE              MIT License for the team's code and documentation
 ```
+
+## License
+
+The team's code and documentation are released under the [MIT License](LICENSE). The datasets in `data/` and the published maps and papers they include come from the public sources listed in [`data/README.md`](data/README.md) and keep their original terms.
 
 ---
 
