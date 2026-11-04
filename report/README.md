@@ -9,7 +9,7 @@ LaTeX source for the project report, styled to match the project proposal (two c
 | `figures/` | Chart images made by `analysis/export_figures.py`: plain PDFs for the report, PNGs with titles for slides |
 | `analysis_figures.tex` | A ready-made figure block for every chart, also made by `export_figures.py` |
 
-The report is a rough draft. Orange notes in brackets mark text still to be written.
+Every section of the report is written. Two orange notes in brackets mark paragraphs to update when the remaining datasets are cleaned and when the app is finished.
 
 ## Editing and building
 

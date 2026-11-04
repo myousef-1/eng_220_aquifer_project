@@ -95,6 +95,12 @@
 \captionsetup[table]{position=top,skip=4pt}  % for tables you add later
 \usepackage{tikz}
 \usepackage{stfloats}                 % lets full-width figures sit at the page bottom too
+% Let up to two full-width figures share a page, so figures stay near their text
+\setcounter{dbltopnumber}{2}
+\renewcommand{\dbltopfraction}{0.88}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\renewcommand{\topfraction}{0.88}
+\renewcommand{\textfraction}{0.08}
 
 % ---------------------------------------------------------------------
 %  References and links
@@ -111,7 +117,7 @@
 % ---------------------------------------------------------------------
 %  Draft helpers
 % ---------------------------------------------------------------------
-\newcommand{\reportstatus}{\ifroughdraft Rough draft, November 2, 2026\else Final, November 16, 2026\fi}
+\newcommand{\reportstatus}{\ifroughdraft Rough draft, November 4, 2026\else Final, November 16, 2026\fi}
 % Red stamp shown on page 1 and the cover page while \roughdrafttrue
 \newcommand{\draftstamp}[1][\large]{\ifroughdraft%
   \tikz\node[draw=draftred,line width=1.1pt,rounded corners=2pt,inner xsep=9pt,inner ysep=4pt,
@@ -157,7 +163,7 @@
     \textbf{Instructor:} & Ramiro Jordan \\
     \textbf{Team:}       & \#23 Petar Djordjevic, Dylan Gonzales, James Wauneka,\\
                          & \phantom{\#23 }Micah Watkins, Meckrem Yousef \\
-    \textbf{Date:}       & \ifroughdraft November 2, 2026 (rough draft)\else November 16, 2026\fi \\
+    \textbf{Date:}       & \ifroughdraft November 4, 2026 (rough draft)\else November 16, 2026\fi \\
   \end{tabular}
   \vfill
 \end{titlepage}
@@ -189,7 +195,7 @@
   \raggedright\footnotesize
   \infohead{Report info}
   \ifroughdraft Status: {\color{draftred}\bfseries Rough draft}\\
-  Date: November 2, 2026\\
+  Date: November 4, 2026\\
   \else Status: Final\\
   \fi Final due: November 16, 2026\par\vspace{1.4ex}
   \infohead{Keywords}
@@ -203,20 +209,23 @@
 \begin{minipage}[t]{0.70\textwidth}
   \infohead{Abstract}
   \small
-  Water scarcity is a persistent challenge across New Mexico. Sandoval County spans several
-  hydrogeologic settings, and its communities depend on a mix of groundwater wells, surface water,
-  and acequia irrigation systems. This project focuses on groundwater: it evaluates the condition
-  of the county's aquifers and wells, with Cuba, New Mexico, on the eastern edge of the San Juan
-  Basin, as a focused case study. The project is motivated by concern about declining groundwater
-  near Cuba, but rather than assume how severe that decline is or what is causing it, we test what
-  the available public data actually show, and where they are too sparse to say. We combined
-  public water-level, well, aquifer-test, geologic, and streamflow records from the USGS, the New
-  Mexico Bureau of Geology, and the State Engineer, and analyzed them with reproducible code. Five
-  of the nine long-term monitoring wells, all 65--95\,km from Cuba, fell over their 1998--2026
-  records, while the Sandia site north of Albuquerque has risen about 13\,ft since 2007. Near Cuba,
-  the only well records are one-time aquifer tests from 1957--1979, and no well within 25\,km has
-  been measured repeatedly, so the data can neither confirm nor rule out severe depletion of Cuba's
-  aquifer. Answering that question requires the village's own well records.
+  Groundwater supplies most of New Mexico's drinking water, yet long-term monitoring is uneven,
+  especially in rural areas. We assembled eight public datasets from the U.S. Geological Survey, the
+  New Mexico Bureau of Geology and Mineral Resources, and the Office of the State Engineer into one
+  reproducible workflow and used them to screen groundwater conditions across Sandoval County, with
+  the Village of Cuba as a case study. At the county's nine long-term monitoring wells (1998--2026),
+  the water table fell at five, most steeply at Rio Rancho (0.36--0.40\,ft per year) and Bernalillo
+  (0.52\,ft per year), and was still falling at four of seven wells in 2016--2025; at the Sandia site
+  it reversed and rose about 13\,ft after 2007, around the time the Albuquerque area began replacing
+  part of its groundwater pumping with river water. Across 180 wells, deeper water goes with deeper wells
+  (Spearman $\rho\approx0.63$), and median depth to water ranges from 22\,ft near Cochiti to 375\,ft near
+  Bernalillo--Rio Rancho; aquifer-test transmissivity has a county median of 136\,ft$^2$/day but varies
+  by almost five orders of magnitude within a single formation. For Cuba, we reconstructed a historical baseline from 15 wells tested in
+  1957--1979, including water 18--24\,ft below land in the Ojo Alamo Sandstone beside the village,
+  and found the one San Jose Formation test consistent with published values. The nearest
+  repeatedly measured well is 38\,km from Cuba, so these records cannot yet show a trend there, but
+  they identify which wells and records would. All results are published in an open dashboard and
+  repository.
 \end{minipage}
 \par\vspace{1.6ex}
 {\color{accentblue}\rule{\textwidth}{0.4pt}}\par\vspace{2.6ex}
@@ -227,8 +236,32 @@
 \section{Introduction}
 % =====================================================================
 \subsection{Background and Motivation}
-\draftnote{Background on water resources in New Mexico and Sandoval County, and the concern about
-declining groundwater near Cuba that motivated the project.}
+Groundwater supplies 78\% of New Mexico's drinking water, and 81\% of the state's public water
+systems depend on it \citep{cook2026}. The state expects about 25\% less water to be available
+within 50 years \citep{nmgov2024}, which will increase reliance on aquifers whose condition is often
+poorly known: rural areas in particular have little groundwater monitoring \citep{cook2026}.
+Sandoval County, home to 148{,}834 people in 2020 across 3{,}710 square miles \citep{census_sandoval},
+depends on groundwater for its drinking water: in 2010, public water systems in the county drew
+about 99\% of their 15{,}900 acre-feet from wells \citep{ose_wateruse2010}.
+
+The Village of Cuba (population 630 in 2020; \citealp{census_cuba}), in the county's rural northwest,
+shows what is at stake. The village supplies its residents from its own wells, which produce
+about 500{,}000 gallons \citep{hollinshead2021}, and its water system has faced repeated problems: a state
+emergency declaration after damage to its water infrastructure in 2022 \citep{nmgov2022},
+mineral-rich, sulfurous water that fouls pipes and storage tanks \citep{davis2020,hollinshead2021},
+a federal partnership to replace its water storage tank \citep{usace2025}, and well-pump outages
+that forced extreme conservation in the summer of 2026 \citep{cuba2026a,cuba2026b}. This history
+motivated the concern, stated in our project proposal, that Cuba's principal aquifer may be
+approaching severe depletion. Failing equipment and poor water quality are not the same as a
+falling water table, however, and the public record had not been examined for evidence of the
+latter.
+
+This project tests what public data can show about groundwater in Sandoval County and around Cuba,
+rather than assuming how severe any decline is or what causes it. It also follows the course's
+emphasis on peace engineering, ``the application of engineering, science, and technology principles
+to promote and support peace'' \citep{unm_peace}: an open, reproducible analysis that states its own
+uncertainty gives a small community and the agencies that serve it a shared factual basis for
+decisions about a scarce resource.
 
 \subsection{Approach}
 The study works at two levels:
@@ -260,6 +293,20 @@ The project proposal also asked about groundwater quality, acequias, and links b
 groundwater and surface water. Those questions were dropped because the data needed to answer
 them were not available (Section~\ref{sec:limits}).
 
+\subsection{Contributions}
+Working only with public records, this study:
+\begin{enumerate}[leftmargin=1.4em,label=(\arabic*)]
+  \item combined eight datasets into one documented, reproducible workflow, from raw downloads
+        through cleaning to analysis, an interactive dashboard, and this report;
+  \item measured the long-term and recent water-level trend at every long-term monitoring well in the
+        county's records;
+  \item characterized depth to water at 180 wells and aquifer properties at 108 tested wells, by
+        area and by geologic formation;
+  \item reconstructed a historical groundwater baseline for the Cuba area and checked it against
+        published studies; and
+  \item mapped where and when monitoring exists, turning the gaps into specific recommendations.
+\end{enumerate}
+
 % ---------------------------------------------------------------------
 %  Figure 1: county map (LaTeX places it at the top of the next page)
 % ---------------------------------------------------------------------
@@ -281,31 +328,46 @@ them were not available (Section~\ref{sec:limits}).
 \section{Study Area}\label{sec:study}
 % =====================================================================
 \subsection{Sandoval County}
-\draftnote{Describe the county, its hydrogeologic settings, and its main communities and water
-sources (Fig.~\ref{fig:map}).}
+Sandoval County spans several hydrogeologic settings (Fig.~\ref{fig:map}). Its largest
+communities, Rio Rancho, Bernalillo, and Placitas, lie in the southeast on the Albuquerque Basin of
+the Rio Grande rift, where wells draw from the Santa Fe Group aquifer system \citep{ritchie2019}. The
+Jemez Mountains and the Sierra Nacimiento occupy the center of the county, and the northwest,
+including Cuba, lies on the eastern edge of the San Juan Basin, where water-bearing sandstones such
+as the Ojo Alamo Sandstone and the San Jose Formation dip into the basin
+\citep{renick1931,kernodle1996,thorn1990}. Because these settings differ, this study compares wells
+by area and by named formation rather than treating the county as one aquifer.
 
 \subsection{Cuba Focus Area}
-Cuba lies on the eastern edge of the San Juan Basin. The case study focuses on the Ojo Alamo
-Sandstone and San Jose Formation near Cuba \citep{usgs_rasa_sjb,kernodle1996}. In this report,
-the \emph{Cuba area} is the area within 25\,km of the village center; distances to Cuba are
+Cuba lies on the eastern edge of the San Juan Basin, on the upper Rio Puerco; the river's USGS gage
+is 2.3\,km from the village center. The case study focuses on the two aquifers
+mapped near the village \citep{usgs_rasa_sjb,kernodle1996}. On the USGS map of the Ojo Alamo
+Sandstone, Cuba sits at the southeastern end of the formation's outcrop, where the sandstone is at or
+near the surface \citep{thorn1990}. North of Cuba, near Lindrith, the San Jose
+Formation contains four water-bearing units, and wells there produce water from its Cuba Mesa Member
+\citep{blandford2025}. In 2020 the village pumped
+from an aquifer about 700\,ft deep, with brackish water at greater depth \citep{davis2020}; which
+formation its production wells draw from is not recorded in the public datasets. In this report,
+the \emph{Cuba area} is the area within 25\,km of the village center, and distances to Cuba are
 straight-line distances from that center.
-\draftnote{Describe Cuba, its water supply, and the aquifers it draws from.}
 
 % =====================================================================
 \section{Data}\label{sec:data}
 % =====================================================================
 Town-specific data for Cuba are limited, so the study relies on public datasets that can be
 filtered to Sandoval County and the area around Cuba. Eight datasets were collected
-(Table~\ref{tab:datasets}). For seven of them, a one-page brief records what the dataset contains,
-which research questions it can help answer, which plots to make from it, and what it can't
-show; a plotting guide compares all seven. The raw files are kept unedited in the project
-repository \citep{team23_repo}.
+(Table~\ref{tab:datasets}). For seven of them, the team wrote a one-page brief that records what
+the dataset contains, which research questions it can help answer, which plots to make from it,
+and what it can't show \citep{gonzales_brief1,gonzales_brief2,gonzales_brief3,gonzales_brief4,gonzales_brief5,gonzales_brief6,gonzales_brief7};
+a plotting guide compares all seven \citep{gonzales_guide}. The briefs and guide are published on
+the project's documentation site, and the raw files are kept unedited in the project repository
+\citep{team23_repo}.
 
 % ---------------------------------------------------------------------
 %  Table 1: datasets (full width; LaTeX places it at the top of a page)
 % ---------------------------------------------------------------------
 \begin{table*}[t]
-  \caption{Datasets collected for the study. Distances are measured from Cuba.}
+  \caption{Datasets collected for the study, with the team's brief for each where one was
+  written. Distances are measured from Cuba.}
   \label{tab:datasets}
   \footnotesize
   \begin{tabularx}{\textwidth}{@{}>{\raggedright}p{0.9in}>{\raggedright}p{0.95in}
@@ -313,24 +375,24 @@ repository \citep{team23_repo}.
     \toprule
     \textbf{Dataset} & \textbf{Source} & \textbf{Contents} & \textbf{Relevance to Cuba} & \textbf{Used for} \\
     \midrule
-    Groundwater-level statistics & USGS & Monthly and yearly depth to water at 9 wells on 4 sites,
+    Groundwater-level statistics \citep{gonzales_brief1} & USGS & Monthly and yearly depth to water at 9 wells on 4 sites,
       1998--2026 & Wells are 65--95\,km away, in the eastern part of the county & RQ1, RQ5 \\
-    Groundwater levels & NM Bureau of Geology & 456 depth-to-water measurements at 87 wells,
+    Groundwater levels \citep{gonzales_brief2} & NM Bureau of Geology & 456 depth-to-water measurements at 87 wells,
       1997--2019, with well depth & Nearest well is 38\,km away & RQ1, RQ2, RQ5 \\
     Aquifer tests & NM Office of the State Engineer & 179 tests in Sandoval County, 1930--2008:
       well construction, formation, and hydraulic properties & Includes tests at a well
       0.7\,km from Cuba & RQ2--RQ4 \\
-    Wells with well logs & NM Office of the State Engineer & Drilling records for 6 Sandoval
+    Wells with well logs \citep{gonzales_brief7} & NM Office of the State Engineer & Drilling records for 6 Sandoval
       County wells, 1978--2022: borehole depth and depth to first water & Link to Cuba's wells
       not verified & RQ2, RQ5 \\
-    Ojo Alamo Sandstone & USGS map atlas, 1990 & Maps of depth to the top of the sandstone, its
+    Ojo Alamo Sandstone \citep{gonzales_brief5} & USGS map atlas, 1990 & Maps of depth to the top of the sandstone, its
       thickness, and wells completed in it & Regional; covers the Cuba area & RQ4 \\
-    San Jose Formation near Lindrith & NM Geological Society, 2025 & Water-bearing units,
+    San Jose Formation near Lindrith \citep{gonzales_brief6} & NM Geological Society, 2025 & Water-bearing units,
       thickness of the Cuba Mesa Member, and groundwater levels & Centered near Lindrith, about
       30\,km north & RQ4 \\
-    Rio Puerco at Cuba & USGS station 08332525 & 10 streamflow measurements (2019--2026) and
+    Rio Puerco at Cuba \citep{gonzales_brief4} & USGS station 08332525 & 10 streamflow measurements (2019--2026) and
       4 gage-height readings & At Cuba, but measures the river, not groundwater & RQ3, RQ5 \\
-    Aquifer sensitivity & NM Water Data & Sensitivity class for 613 mapped areas & Can't be
+    Aquifer sensitivity \citep{gonzales_brief3} & NM Water Data & Sensitivity class for 613 mapped areas & Can't be
       located: the file has no coordinates & Not used \\
     \bottomrule
   \end{tabularx}
@@ -373,8 +435,9 @@ mapped or matched to Cuba without its separate map layer, which was not obtained
 \subsection{Data Not Available}
 The most important missing data are Cuba's municipal well records: well IDs, the formation each
 well draws from, pumping volumes, and water-level history, held by the Village of Cuba or the
-State Engineer \citep{nmose}. Every dataset brief identified these records as the missing piece for
-RQ3. Also not obtained were the USGS digital aquifer data for the San Juan Basin
+State Engineer \citep{nmose}. Six of the seven dataset briefs name these records as the missing
+piece for any conclusion about Cuba's own supply
+\citep{gonzales_brief1,gonzales_brief2,gonzales_brief4,gonzales_brief5,gonzales_brief6,gonzales_brief7}. Also not obtained were the USGS digital aquifer data for the San Juan Basin
 \citep{usgs_rasa_sjb}, groundwater-quality records such as the Brackish Water Assessment
 \citep{nmbg_bwa}, acequia locations \citep{isc_acequias}, and records from other monitoring
 networks \citep{ngwmn,cgmn}. Section~\ref{sec:limits} describes what their absence means for the
@@ -499,40 +562,87 @@ behind it, which visitors can download. Charts can be zoomed and hovered for exa
 % =====================================================================
 \section{Results}\label{sec:results}
 % =====================================================================
-\subsection{Groundwater Levels}
+Table~\ref{tab:results} summarizes the main result for each research question, and the subsections
+below give the details. Each finding is labeled \emph{Measured}, \emph{Hypothesis}, or
+\emph{Insufficient data}, as defined in Section~\ref{sec:methods}.
+
+\begin{table*}[t]
+  \caption{Main results by research question.}
+  \label{tab:results}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright}p{1.25in}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.15in}@{}}
+    \toprule
+    \textbf{Research question} & \textbf{Main result} & \textbf{Label} \\
+    \midrule
+    RQ1. Groundwater levels & 5 of 9 monitoring wells fell over 1998--2026, by up to 0.52\,ft/yr;
+      4 of 7 were still falling in 2016--2025; the Sandia site has risen about 13\,ft since 2007 &
+      Measured; cause of the Sandia recovery: Hypothesis \\
+    RQ2. Wells and aquifer units & Depth to water rises with well depth ($\rho=0.63$--$0.64$); area
+      medians range from 22 to 375\,ft; median transmissivity is 136\,ft$^2$/day, and within some
+      formations it varies more than between formation medians & Measured \\
+    RQ3. Groundwater near Cuba & A baseline from 15 wells tested in 1957--1979, with water 18\,ft
+      below land 0.7\,km from the village in 1957; the nearest repeated water-level record is 38\,km
+      away & Baseline: Measured; trend: Insufficient data \\
+    RQ4. Ojo Alamo vs.\ San Jose & The Ojo Alamo is shallow at Cuba and deepens northward; the one
+      San Jose test (100\,ft$^2$/day) matches the published Cuba Mesa Member value (101\,ft$^2$/day)
+      & Measured; statistical comparison: Insufficient data \\
+    RQ5. Monitoring coverage & 86\% of 271 sites lie east of 106.75\textdegree\,W; yearly water-level
+      monitoring exists only since 1999, at four eastern sites, and none in the Cuba area & Measured \\
+    RQ6. Stress indicators & Five indicators computed from the data, each with its scope and
+      confidence (Table~\ref{tab:indicators}) & Measured \\
+    \bottomrule
+  \end{tabularx}
+\end{table*}
+
+\subsection{Groundwater Levels (RQ1)}
 \begin{figure*}[t]
   \centering
   % Made by analysis/charts.py (groundwater_hydrographs); remake with `python -m analysis.export_figures`.
-  \includegraphics[width=\textwidth]{groundwater_hydrographs}
+  \includegraphics[width=0.85\textwidth]{groundwater_hydrographs}
   \caption{Monthly mean depth to water at the nine USGS monitoring wells, 1998--2026 (axis flipped:
   up is a higher water table). Wells marked A or B share a location but are measured at a different
-  depth. Every panel spans the same vertical range, so steepness can be compared. Five of the nine
-  wells fell over their records; at the Sandia site the water level has risen about 13\,ft since 2007.
-  Scope: Sandoval County, 65--95\,km from Cuba (not Cuba). Source: USGS Water Data statistics,
-  parameter 72019, cleaned by J.~Wauneka.}
+  depth. Every panel spans the same vertical range, so steepness can be compared. Scope: Sandoval
+  County, 65--95\,km from Cuba. Source: USGS Water Data statistics, parameter 72019, cleaned by
+  J.~Wauneka.}
   \label{fig:levels}
 \end{figure*}
+\begin{figure*}[t]
+  \centering
+  % Made by analysis/charts.py (groundwater_trends); remake with `python -m analysis.export_figures`.
+  \includegraphics[width=0.74\textwidth]{groundwater_trends}
+  \caption{Water-level trend at each monitoring well (Sen's slope of annual means) over its whole
+  record (circles) and over 2016--2025 (diamonds), with 95\% intervals. Negative values mean a
+  falling water table. Red: falling, blue: rising, gray: no clear trend (Mann--Kendall $p\geq0.05$).
+  Source: USGS Water Data statistics.}
+  \label{fig:trends}
+\end{figure*}
 The nine USGS monitoring wells sit at four sites between Rio Rancho and Cochiti, 65--95\,km from
-Cuba (Fig.~\ref{fig:levels}). Over their full records, five wells fell, three rose, and one showed
-no clear trend. Water levels at Lincoln Middle School (Rio Rancho) fell 0.36--0.40\,ft per year and
-were still falling in 2016--2025, as was the Dome Road well near Cochiti. The Bernalillo site's main
-well fell about 0.5\,ft per year over its record but showed no clear trend in 2016--2025. At the
-Sandia site the water level fell until 2007 and then rose about 13\,ft by 2025 (\emph{Measured}).
-That recovery coincides with the San Juan--Chama Drinking Water Project, after which the Albuquerque
-water utility pumped less groundwater and water levels rose across the Albuquerque area
-\citep{ritchie2019}; these data alone cannot show the cause (\emph{Hypothesis}).
+Cuba, and have monthly records starting in 1998 or 1999 (Fig.~\ref{fig:levels}). Over their full records,
+five wells fell, three rose, and one showed no clear trend (Fig.~\ref{fig:trends}). The three wells
+at Lincoln Middle School in Rio Rancho fell 0.36--0.40\,ft per year and were still falling in
+2016--2025, as was the Dome Road well near Cochiti. The Bernalillo site's main well fell
+0.52\,ft per year over its record, the steepest full-record decline, but showed no clear trend in
+2016--2025. In all, four of the seven wells with enough recent data were still falling in
+2016--2025, and the full-record change across the nine wells ranges from $-16$ to $+8$\,ft
+(\emph{Measured}).
 
-In the Placitas area, only five NMBGMR wells were measured both in 1997--98 and in 2018--19. Three
-changed by 5\,ft or less (two of them from baselines flagged as recently pumped), one (PC-014) is 51\,ft deeper, and one (PC-025) is 57\,ft shallower;
-PC-025's 1990s readings rose steadily after a first reading flagged as recently pumped, so its
-1990s average is not a stable baseline. Five wells cannot establish an area-wide trend
-(\emph{Insufficient data}).
+The Sandia site behaves differently. Its water level fell until 2007 and then rose about 13\,ft by
+2025, at 0.72\,ft per year in 2016--2025 (\emph{Measured}). The recovery coincides with the start of
+the San Juan--Chama Drinking Water Project, after which the Albuquerque area's water utility pumped
+less groundwater and water levels rose across the Albuquerque area \citep{ritchie2019}; these data
+alone cannot show the cause (\emph{Hypothesis}).
 
-\subsection{Wells and Aquifer Units}
+Five NMBGMR wells in the Placitas area give an independent check over two decades. Measured in
+1997--98 and again in 2018--19, three changed by 5\,ft or less, one (PC-014) is 51\,ft deeper, and
+one (PC-025) is 57\,ft shallower (\emph{Measured}). Two of the small changes, and PC-025's, start
+from 1990s readings flagged as recently pumped, which makes them less certain, and five wells
+describe those wells rather than an area-wide trend.
+
+\subsection{Wells and Aquifer Units (RQ2)}
 \begin{figure*}[t]
   \centering
   % Made by analysis/charts.py (well_depth_vs_water); remake with `python -m analysis.export_figures`.
-  \includegraphics[width=0.72\textwidth]{well_depth_vs_water}
+  \includegraphics[width=0.64\textwidth]{well_depth_vs_water}
   \caption{Well depth against depth to water, one point per well, from three record types,
   1930--2022. The record types measure water differently (a 1997--2019 reading, the level on the
   day of an aquifer test, and the depth where water was first found during drilling), so they are
@@ -540,34 +650,62 @@ PC-025's 1990s readings rose steadily after a first reading flagged as recently 
   25\,km of Cuba. Sources: NMBGMR groundwater levels; NM OSE aquifer tests and well logs.}
   \label{fig:depth}
 \end{figure*}
-Where water is deeper, wells are drilled deeper (Spearman $\rho=0.63$--$0.64$ within the two larger
-record types; Fig.~\ref{fig:depth}), but the spread is wide: half of 180 wells have water between 41 and 241\,ft below land.
-Among recorded wells, depth to water was smallest around Cochiti--Pe\~{n}a Blanca and largest around
-Bernalillo--Rio Rancho, though the groups mix record types and decades. Aquifer properties vary
-widely: within three formations, transmissivity values span more than the spread between formation
-medians, up to almost five orders of magnitude in the Madera Limestone. Only the aquifer-test file records the formation, so the other well
-records cannot be assigned to an aquifer unit (\emph{Insufficient data}).
-
-\subsection{Cuba Case Study}
 \begin{figure*}[t]
   \centering
-  % Made by analysis/charts.py (cuba_nearest_records); remake with `python -m analysis.export_figures`.
-  \includegraphics[width=0.8\textwidth]{cuba_nearest_records}
-  \caption{Distance from Cuba to the nearest site in each dataset. The nearest well with repeated
-  water-level measurements is 38\,km away; within 25\,km there are only one-time aquifer tests
-  (1957--1979), one well log, and the Rio Puerco stream gage. Distances are straight-line from the
-  approximate village center. Sources: USGS monitoring wells and surface-water statistics, NMBGMR
-  groundwater levels, NM OSE aquifer tests and well logs, and USGS station 08332525.}
-  \label{fig:nearest}
+  % Made by analysis/charts.py (formation_properties); remake with `python -m analysis.export_figures`.
+  \includegraphics[width=0.78\textwidth]{formation_properties__transmissivity_drawdown_ft2_per_day}
+  \caption{Transmissivity from each aquifer test (drawdown method), by geologic formation, on a log
+  scale. Black ticks are formation medians (one median per well, formations with at least three
+  tested wells); the dotted line is the median of all 108 tested wells, 136\,ft$^2$/day. Tests date
+  from 1930--2008. Source: NM OSE aquifer tests, cleaned by J.~Wauneka.}
+  \label{fig:transmissivity}
 \end{figure*}
-Within 25\,km of Cuba, the collected data contain 15 wells with one-time aquifer tests
-(1957--1979), one well log (2018), and the Rio Puerco stream gage. Nine of the tested wells recorded
-a depth to water on test day, but no well near Cuba has been measured repeatedly; the nearest well
-with repeated water-level measurements is 38\,km away, and the nearest USGS monitoring well 65\,km
-(Fig.~\ref{fig:nearest}). The data therefore cannot confirm or rule out severe decline in Cuba's
-aquifer (\emph{Insufficient data}). Answering RQ3 requires Cuba's municipal well records: well IDs,
-producing formations, pumping volumes, and water-level histories.
+Where water is deeper, wells are drilled deeper: the Spearman correlation between well depth and
+depth to water is 0.64 for NMBGMR wells and 0.63 for aquifer-test wells (Fig.~\ref{fig:depth}). Half
+of the 180 wells with a recorded level have water 41--241\,ft below land, and the median well has
+142\,ft of water standing above its bottom, a rough indication of how far the level could fall
+before the well would need deepening. Depth to water differs sharply by area: the median is
+22\,ft around Cochiti--Pe\~{n}a Blanca, 104\,ft in the Cuba area, 116\,ft around Placitas, and
+375\,ft around Bernalillo--Rio Rancho (\emph{Measured}), although each area mixes record types and
+decades.
 
+The aquifer tests add hydraulic properties (Fig.~\ref{fig:transmissivity}). Median transmissivity
+across 108 tested wells is 136\,ft$^2$/day, with a middle half of 27.5--988\,ft$^2$/day. Among
+formations with at least three tested wells, medians range from 6.2\,ft$^2$/day in the Point Lookout
+Sandstone to 2{,}760\,ft$^2$/day in alluvium and surface deposits, and within three formations the
+values vary more than the formation medians do, by almost five orders of magnitude in the Madera
+Limestone (\emph{Measured}). The formation a well draws from matters, but so does the individual
+well. Only the aquifer-test file names the formation, so the other well records cannot be assigned
+to an aquifer unit.
+
+\subsection{Groundwater Near Cuba (RQ3)}
+\begin{figure*}[t]
+  \centering
+  % Made by analysis/charts.py (cuba_area_map); remake with `python -m analysis.export_figures`.
+  \includegraphics[width=0.62\textwidth]{cuba_area_map}
+  \caption{Every site within 60\,km of Cuba in the collected data, colored by what it measures, with
+  rings at 10, 25, and 50\,km. Within 25\,km, the records are one-time aquifer tests at 15 wells
+  (1957--1979), one well log, and the Rio Puerco stream gage. Sources: USGS, NMBGMR, NM OSE; outline:
+  Sandoval County (US Census Bureau).}
+  \label{fig:cuba}
+\end{figure*}
+Within 25\,km of Cuba, the collected records hold 15 wells with aquifer tests from 1957--1979, one
+well log from 2018, and the Rio Puerco stream gage (Fig.~\ref{fig:cuba}). Nine of the tested wells
+recorded a depth to water on the day of the test (1957--1978), including 18\,ft at a well 0.7\,km
+from the village center in 1957. Across the ten Cuba-area wells with any recorded level (1957--2018),
+depth to water ranges from 10 to 509\,ft, with a median of 104\,ft (\emph{Measured}). Together with
+the well depths, formations, and hydraulic properties from the same tests, these records form a
+historical baseline for the area.
+
+None of these wells has been measured again in the collected data. The nearest well with repeated
+water-level measurements is 38\,km away (two readings in 2017), and the nearest USGS monitoring
+well is 65\,km away, so the public data cannot yet show whether Cuba's aquifer is declining, or how
+fast (\emph{Insufficient data}). They do show what would answer the question: the village's own
+well records (well IDs, producing formations, pumping volumes, and water-level histories), and new
+water-level measurements at the baseline wells where they still exist, which would give the first
+direct estimate of long-term change near Cuba.
+
+\subsection{Ojo Alamo Sandstone and San Jose Formation (RQ4)}
 \begin{figure*}[t]
   \centering
   % Made by analysis/charts.py (ojo_alamo_vs_san_jose); remake with `python -m analysis.export_figures`.
@@ -579,92 +717,185 @@ producing formations, pumping volumes, and water-level histories.
   \label{fig:formations}
 \end{figure*}
 On the USGS map of the Ojo Alamo Sandstone \citep{thorn1990}, Cuba sits at the southeastern end of
-the formation's outcrop, where it is shallow, and its top deepens northward past 1{,}000 and
-3{,}000\,ft. Only eight aquifer-test events in the county name the Ojo Alamo (seven) or the San Jose
-Formation (one), all from 1953--1977: too few to describe either formation, let alone compare them
-(Fig.~\ref{fig:formations}).
-The single San Jose test (100\,ft$^2$/day) is close to the one published Cuba Mesa Member value near
-Lindrith and within a San Jose range from earlier tests, both compiled by \citet{blandford2025}.
+the formation's outcrop, where the sandstone is at or near the surface, and its top deepens
+northward past 1{,}000 and 3{,}000\,ft. In the aquifer tests, Ojo Alamo wells within 5\,km of Cuba
+had water 18--24\,ft below land in 1957--1960, while those 19--45\,km away ranged from 10 to 604\,ft
+(Fig.~\ref{fig:formations}). The median transmissivity of the four Ojo Alamo wells with a value,
+94.2\,ft$^2$/day, lies within the middle half of all tested wells in the county (\emph{Measured}).
 
-As surface-water context, not evidence about groundwater, the Rio Puerco at Cuba had measurable
-flow on all four visits in April and May and on none of the six visits from August to March,
-2019--2026 \citep{usgs_riopuerco}. Spot visits cannot show how often the river runs dry.
+The single San Jose Formation test, at a well 9\,km from Cuba in 1977, recorded water 51\,ft below
+land in a 206-ft well and a transmissivity of 100\,ft$^2$/day. That value closely matches the one
+published value for the Cuba Mesa Member near Lindrith (101\,ft$^2$/day) and falls within the range
+of earlier San Jose tests (43--118\,ft$^2$/day), both compiled by \citet{blandford2025}: an
+independent check on the State Engineer's records (\emph{Measured}). With seven Ojo Alamo test
+events and one San Jose test, all from 1953--1977, the two formations cannot be compared
+statistically (\emph{Insufficient data}).
 
-\subsection{Monitoring Coverage and Data Gaps}
+\subsection{Surface Water at Cuba}
+The Rio Puerco at Cuba follows a clear seasonal pattern. It had measurable flow, 6.89--20.4\,ft$^3$/s,
+on all four visits in April and May, and no measurable flow on any of the six visits from August to
+March, 2019--2026 \citep{usgs_riopuerco} (\emph{Measured}). The pattern fits a river fed mainly by
+spring snowmelt upstream (\emph{Hypothesis}); ten spot visits cannot show how many days a year it
+runs dry.
+
+\subsection{Monitoring Coverage (RQ5)}
 \begin{figure*}[t]
   \centering
   % Made by analysis/charts.py (coverage_timeline); remake with `python -m analysis.export_figures`.
-  \includegraphics[width=0.85\textwidth]{coverage_timeline}
+  \includegraphics[width=0.78\textwidth]{coverage_timeline}
   \caption{Number of sites with at least one record in each year, 1926--2026, for the whole county
   (top) and the Cuba area within 25\,km (bottom). Darker shading means more sites. Gaps are years
   with no record in the collected files; other agencies may hold data. Sources: USGS, NMBGMR, and
   NM OSE.}
   \label{fig:coverage}
 \end{figure*}
-Monitoring is concentrated along the Rio Grande: 86\% of the 271 mapped sites lie east of
-106.75\textdegree{}\,W (Fig.~\ref{fig:map}). Groundwater levels have been monitored every year only
-since 1999, and only at four sites in the east of the county; the collected data have no
-water-level monitoring in the Cuba area (Fig.~\ref{fig:coverage}). According to the dataset briefs, no dataset gives more than
-limited support for RQ3, the question about Cuba itself.
+The coverage analysis places every site from every dataset, 271 in all: 96 with water-level
+records, 153 with well construction or aquifer tests, and 22 surface-water stations
+(Fig.~\ref{fig:map}). Coverage is concentrated along the Rio Grande, where 86\% of the sites lie
+east of 106.75\textdegree\,W. Groundwater levels have been measured every year only since 1999, and
+only at four sites in the east of the county; NMBGMR wells were measured in 1997--1999 and again in
+2016--2019, with nothing in between (Fig.~\ref{fig:coverage}). The Cuba area has well records from
+nine separate years between 1957 and 2018 but no repeated water-level monitoring, and its only recent
+data are the Rio Puerco visits since 2019 (\emph{Measured}). The dataset briefs reach the same
+conclusion: no dataset gives more than limited support for RQ3, the question about Cuba itself
+\citep{gonzales_guide}.
 
-\subsection{Groundwater-Stress Indicators}
-Five indicators can be computed from the collected data without overstating their certainty: the
-2016--2025 water-level trend at the monitored wells (four of the seven wells with enough recent data
-were falling and two rising), the full-record water-level change at the same wells ($-16$ to
-$+8$\,ft), the distance from Cuba to the nearest repeated water-level record (38\,km), the share of
-Rio Puerco visits with flow (4 of 10, river only), and the number and age of aquifer tests near Cuba
-(15 wells, 1957--1979). Each applies only where its data were collected, and none measures how much
-groundwater is left; the Streamlit app lists them with their scope and confidence (RQ6).
+\subsection{Groundwater-Stress Indicators (RQ6)}
+\begin{table*}[t]
+  \caption{Groundwater-stress indicators that the collected data support, as shown in the
+  dashboard.}
+  \label{tab:indicators}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright}p{1.35in}>{\raggedright}p{1.25in}>{\raggedright}p{1.25in}>{\raggedright}p{0.95in}>{\raggedright\arraybackslash}X@{}}
+    \toprule
+    \textbf{Indicator} & \textbf{Applies to} & \textbf{Value} & \textbf{Confidence} & \textbf{Caveat} \\
+    \midrule
+    Water-level trend, 2016--2025 & 4 USGS sites, Rio Rancho to Cochiti & 4 of 7 wells falling,
+      2 rising & Moderate (9--10 years per well) & Not representative of the whole county \\
+    Water-level change, full record & Same 9 wells & $-16$ to $+8$\,ft, first to last full year &
+      High at these wells & Depends on the start year (Sandia fell, then recovered) \\
+    Distance to nearest repeated water-level record & Cuba & 38\,km (2 readings, 2017) & High (a
+      count, not an estimate) & Shows a data gap, not a water condition \\
+    Rio Puerco visits with measurable flow & Cuba (river) & 4 of 10 visits (2019--2026) & Low &
+      Spot visits; the season of each visit drives the result \\
+    Aquifer properties near Cuba & Cuba area ($\leq$25\,km) & 15 tested wells, 1957--1979 & Low &
+      One-time historical tests; formation often not recorded \\
+    \bottomrule
+  \end{tabularx}
+\end{table*}
+For RQ6, we kept only indicators that can be computed directly from the collected data, and paired
+each with the place it applies to, its value, and a stated confidence (Table~\ref{tab:indicators}).
+The dashboard presents them the same way. None measures how much groundwater remains; together they
+show where groundwater stress can be measured and where it cannot yet.
 
 % =====================================================================
 \section{Discussion}\label{sec:discussion}
 % =====================================================================
-\draftnote{What the results mean for Sandoval County and Cuba, and which indicators best
-communicate groundwater stress (RQ6).}
+\subsection{Persistent Declines, and a Recovery}
+Where the county is monitored, water levels are falling slowly but persistently. Rates of
+0.36--0.52\,ft per year at Rio Rancho and Bernalillo amount to roughly 4--5\,ft per decade, and four
+of the seven wells with recent data were still falling in 2016--2025. These rates describe four
+sites rather than the whole county, but they are the only continuous multi-decade groundwater-level
+records in the collected data, and they come from the area where most of the county's people live.
+
+The Sandia site shows that declines can reverse. Its water level fell until 2007 and has since risen
+about 13\,ft, beginning when the Albuquerque area's water utility started replacing part of its
+groundwater pumping with San Juan--Chama river water, and the USGS mapped widespread water-level
+rises across the Albuquerque area between 2008 and 2016 \citep{ritchie2019}. Our data cannot prove the link, but the timing suggests
+that reducing pumping, through conservation or an alternative supply, lets water levels recover
+(\emph{Hypothesis}). For communities facing decline, that is an encouraging precedent.
+
+\subsection{Local Conditions Differ}
+The well records also show why a county-wide average would mislead. Median depth to water differs by
+more than an order of magnitude between areas, and transmissivity varies by up to five orders of
+magnitude within a single formation. The condition of one community's aquifer cannot be inferred
+from another's, and well-specific records are worth collecting. This supports the study's two-level
+design: a county-wide screening to compare areas, and a local case study where decisions are made.
+
+\subsection{What the Results Mean for Cuba}
+For Cuba, the analysis turns an open question into a specific plan. The historical baseline shows
+that in the late 1950s water stood 18--24\,ft below land in the Ojo Alamo Sandstone beside the
+village, and that the Ojo Alamo and San Jose formations in the Cuba region have transmissivities
+typical of the county's tested wells. The village's documented water problems from 2020 to 2026
+involve infrastructure and water quality: damaged equipment, failed well pumps, deteriorated storage,
+and mineral-rich water \citep{nmgov2022,hollinshead2021,usace2025,cuba2026a}. Whether the aquifer
+itself is being depleted is a separate question that no public record yet answers.
+
+Three steps would answer it at modest cost. First, compile the village's well records from the
+Village of Cuba or the State Engineer, including each well's producing formation, pumping volumes,
+and water-level history. Second, measure the static water level in the village's wells and in any of
+the 1957--1979 test wells that can still be located, and compare it with the baseline. Third, add a
+well near Cuba to the state's groundwater monitoring network, which the state plans to expand with
+at least 100 new monitoring wells \citep{cook2026}. Because the northwest of the county has no
+repeated water-level monitoring at all, one well there would likely add more information than
+another well along the Rio Grande.
+
+\subsection{Communicating Groundwater Stress}
+Of the indicators in Table~\ref{tab:indicators}, the water-level trend and the full-record change at
+monitored wells are the most direct measures of stress, with moderate to high confidence where they
+apply. The distance to the nearest repeated record is the clearest way to communicate a data gap:
+at Cuba it is 38\,km. Showing each indicator with its scope and confidence, as the dashboard does,
+keeps a viewer from reading a measurement at Rio Rancho as a statement about Cuba (RQ6).
+
+\subsection{Peace Engineering}
+Disagreements over water often begin with disagreement about the facts. By combining scattered
+public records into one open, reproducible analysis, labeling every finding by how certain it is,
+and publishing the data, code, and dashboard, this project gives residents, the village, and state
+agencies a common starting point. It also makes an equity issue visible: monitoring is concentrated
+where most people live, while small rural communities such as Cuba, which rely on their own wells,
+have the least information about their aquifers.
 
 % =====================================================================
 \section{Limitations}\label{sec:limits}
 % =====================================================================
-The project proposal included three questions that this report does not answer, because the data
-needed for them were not obtained during the project:
-\begin{itemize}
-  \item \textbf{Groundwater quality and salinity.} No groundwater-quality records were collected.
-        The water-quality measurements in the USGS file all come from streams, mainly the Rio
-        Grande below Cochiti Dam, far from Cuba.
-  \item \textbf{Acequias.} No data on acequia locations or service areas were collected.
-  \item \textbf{Groundwater and surface-water links.} Comparing the two requires repeated
-        water-level measurements near a stream. The only stream records at Cuba are 10 visits to
-        the Rio Puerco gage, and the nearest well in the water-level datasets is 38\,km
-        away.
-\end{itemize}
-The data that were collected also limit what the results can support:
-\begin{itemize}
-  \item Almost nothing measures Cuba's groundwater: the nearest well measured more than once is
-        38\,km away, so RQ3 cannot be answered with these data.
-  \item Four monitoring sites carry the county's trend results; they are indicators at those
-        points, not a county average or a measure of remaining supply.
-  \item Most aquifer tests are decades old and record conditions on the day of the test, and only
-        eight name the Ojo Alamo Sandstone or San Jose Formation.
-  \item No geologic-region layer was available, so wells are grouped by nearest town and by the
-        formation named in aquifer tests.
-  \item Trend tests assume independent years; serial correlation makes them look more certain than
-        they are.
-\end{itemize}
+The results are bounded by the records available. The long-term water-level trends rest on four
+monitoring sites in the east of the county; they describe those sites, not a county average or the
+amount of water remaining. Most aquifer tests are decades old and record conditions on the day of
+the test, and only the aquifer-test file records the formation. No geologic-region layer was
+available, so wells are grouped by nearest town and by named formation. Trend tests assume that
+years are independent; serial correlation makes their $p$-values and intervals optimistic
+\citep{helsel2020}.
+
+The project proposal also asked about groundwater quality, acequias, and links between groundwater
+and surface water. These questions were set aside because the required data were not obtained: no
+groundwater-quality records were collected (the USGS water-quality measurements come from streams far
+from Cuba), no acequia data were available, and comparing groundwater with surface water requires
+repeated water-level measurements near a stream. Groundwater quality in particular, a documented
+concern in Cuba \citep{hollinshead2021}, is a natural next step.
 
 % =====================================================================
 \section{Conclusions}\label{sec:conclusions}
 % =====================================================================
-\draftnote{Summary of findings and recommended next steps.}
+Using only public records, this study produced a reproducible, county-wide picture of groundwater
+conditions in Sandoval County and a historical groundwater baseline for Cuba. The main findings are:
+\begin{enumerate}[leftmargin=1.4em]
+  \item Five of the nine long-term monitoring wells fell over 1998--2026, by up to 0.52\,ft per
+        year, and four of seven were still falling in 2016--2025.
+  \item At the Sandia site, the water table recovered about 13\,ft after 2007, coinciding with a
+        shift from groundwater to river water in the Albuquerque area.
+  \item Depth to water and aquifer properties vary strongly by area and within formations, so local
+        decisions need local data.
+  \item Near Cuba, 15 wells tested in 1957--1979 provide a baseline, including shallow water in the
+        Ojo Alamo Sandstone beside the village, and the one San Jose Formation test matches published
+        values.
+  \item Repeated groundwater monitoring is concentrated along the Rio Grande; the nearest repeated
+        record to Cuba is 38\,km away.
+\end{enumerate}
+We recommend that the Village of Cuba's well records be compiled and made public, that static water
+levels be measured in Cuba's wells and in the historical test wells, and that a monitoring well near
+Cuba be added to the state network. With those data, the workflow and dashboard built here can be
+rerun to answer whether Cuba's aquifer is declining.
 
 % =====================================================================
 %  Back matter
 % =====================================================================
-\Needspace{9\baselineskip}
+\Needspace{11\baselineskip}
 \section*{Data and Code Availability}
 \begin{description}[style=nextline,leftmargin=1em,itemsep=1pt,font=\normalfont\bfseries]
   \item[Code and data] \href{https://github.com/pdjordj11/eng_220_aquifer_project}{\nolinkurl{github.com/pdjordj11/eng_220_aquifer_project}}
   \item[Interactive dashboard] \href{https://eng220aquiferproject.streamlit.app/}{\nolinkurl{eng220aquiferproject.streamlit.app}}
   \item[Documentation] \href{https://pdjordj11.github.io/eng_220_aquifer_project/}{\nolinkurl{pdjordj11.github.io/eng_220_aquifer_project}}
+  \item[Dataset briefs and plotting guide] \href{https://pdjordj11.github.io/eng_220_aquifer_project/data-collection/}{\nolinkurl{pdjordj11.github.io/eng_220_aquifer_project/data-collection}}
 \end{description}
 
 \section*{Author Contributions}
@@ -681,7 +912,10 @@ The data that were collected also limit what the results can support:
 \end{description}
 
 \section*{Acknowledgments}
-\draftnote{To be written.}
+We thank our instructor, Ramiro Jordan, for his guidance throughout the project, and the U.S.
+Geological Survey, the New Mexico Bureau of Geology and Mineral Resources, the New Mexico Office of
+the State Engineer, and the New Mexico Geological Society for making the data used in this study
+publicly available.
 
 \bibliographystyle{plainnat}
 \bibliography{references}
