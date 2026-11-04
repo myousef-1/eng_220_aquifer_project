@@ -42,15 +42,24 @@ Three of the project's 15 charts are below. Every chart, with its method, captio
 
 **Groundwater levels at the county's monitoring wells (research question 1)**
 
-![Monthly depth to water at the 9 USGS monitoring wells, 1998 to 2026](docs/figures/groundwater_hydrographs.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/groundwater_hydrographs_dark.png">
+  <img alt="Monthly depth to water at the 9 USGS monitoring wells, 1998 to 2026" src=".github/readme/groundwater_hydrographs_light.png">
+</picture>
 
 **Records near Cuba (research question 3)**
 
-![Sites within 60 km of Cuba, with aquifer-test wells sized by transmissivity](docs/figures/cuba_area_map.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/cuba_area_map_dark.png">
+  <img alt="Sites within 60 km of Cuba, with aquifer-test wells sized by transmissivity" src=".github/readme/cuba_area_map_light.png">
+</picture>
 
 **Where monitoring exists in Sandoval County (research question 5)**
 
-![Every mapped site in the project's datasets across Sandoval County](docs/figures/county_coverage_map.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/county_coverage_map_dark.png">
+  <img alt="Every mapped site in the project's datasets across Sandoval County" src=".github/readme/county_coverage_map_light.png">
+</picture>
 
 ## Data
 
@@ -94,6 +103,7 @@ docs/files/          Presentation slides, report PDF, dataset briefs, and other 
 report/              Final report LaTeX source and figures (see report/README.md)
 project_notes/       Project proposal, deadlines, and resource links
 .devcontainer/       Codespaces setup
+.github/readme/      Chart images for this README in light and dark versions, made by make_images.py
 ```
 
 ---
@@ -200,6 +210,9 @@ After changing a chart in `analysis/charts.py`, remake the images for the report
 pip install kaleido
 python -m analysis.export_figures
 python -m analysis.write_docs
+python .github/readme/make_images.py
 ```
+
+The last command remakes the light and dark chart images shown in this README.
 
 Don't edit the blocks between the `BEGIN GENERATED` and `END GENERATED` markers in `docs/analysis.md` and `docs/findings.md` by hand; `write_docs` rewrites them. Then publish the documentation site as described above.
