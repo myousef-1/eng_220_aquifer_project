@@ -6,11 +6,11 @@ The project schedule, and what the team completed at each course checkpoint.
 
 <div class="gantt">
 Team, topic, and roles (all)          | 2026-09-21 | 2026-10-12
-Project proposal (all)                | 2026-10-12 | 2026-10-23
+Project proposal (all)                | 2026-09-21 | 2026-10-13
 Data collection (Dylan)               | 2026-10-01 | 2026-10-29
 Data cleaning (James)                 | 2026-10-25 | 2026-11-14
 Analysis and visualizations (Micah)   | 2026-10-30 | 2026-11-03
-Streamlit app (Meckrem)               | 2026-10-15 | 2026-11-14
+Streamlit app (Meckrem)               | 2026-11-03 | 2026-11-14
 Final report (Petar)                  | 2026-11-03 | 2026-11-15
 Presentation slides (Petar)           | 2026-10-15 | 2026-11-14
 Documentation site (Petar)            | 2026-10-15 | 2026-11-15
@@ -31,7 +31,7 @@ Hover over or tap a task to see its dates.
 
 ## Midpoint · Fri, Oct 23
 
-- Project proposal completed
+- Project proposal submitted on Tue, Oct 13
 - Codespaces setup and first version of the Streamlit app in place
 - First two datasets added: USGS monitoring statistics and OSE aquifer-test records
 - Documentation site launched

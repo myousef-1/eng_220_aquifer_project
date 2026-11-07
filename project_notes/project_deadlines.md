@@ -3,6 +3,7 @@
 | Date | Deadline |
 |---|---|
 | Mon, Oct 12 | First-quarter checkpoint |
+| Tue, Oct 13 | Project proposal due |
 | Fri, Oct 23 | Midpoint checkpoint |
 | Tue, Nov 3 | Three-quarter checkpoint |
 | Sat, Nov 14 | Team deadline: data cleaning, Streamlit app, presentation slides, and team video finished |
