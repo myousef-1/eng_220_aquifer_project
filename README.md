@@ -80,11 +80,11 @@ Eight public datasets, described in Dylan Gonzales's [dataset briefs](https://pd
 
 | Member | Role |
 |---|---|
-| Petar Djordjevic (Prime Minister) | Documentation, final report, presentation, and video |
+| Petar Djordjevic (Prime Minister) | GitHub workflow, documentation, final report, presentation, and video |
 | Dylan Gonzales | Data acquisition and dataset justification |
 | James Wauneka | Data cleaning and preprocessing |
 | Micah Watkins | Analysis code and visualizations |
-| Meckrem Yousef | GitHub workflow and the Streamlit app |
+| Meckrem Yousef | Streamlit app design and development |
 
 ## Repository Layout
 

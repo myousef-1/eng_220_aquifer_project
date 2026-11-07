@@ -8,13 +8,13 @@ The project schedule, and what the team completed at each course checkpoint.
 Team, topic, and roles (all)          | 2026-09-21 | 2026-10-12
 Project proposal (all)                | 2026-10-12 | 2026-10-23
 Data collection (Dylan)               | 2026-10-01 | 2026-10-29
-Data cleaning (James)                 | 2026-10-25 | 2026-11-06
+Data cleaning (James)                 | 2026-10-25 | 2026-11-14
 Analysis and visualizations (Micah)   | 2026-10-30 | 2026-11-03
-Streamlit app (Meckrem)               | 2026-10-15 | 2026-11-10
-Final report (Petar)                  | 2026-11-03 | 2026-11-14
-Presentation slides (Petar)           | 2026-10-15 | 2026-11-16
-Documentation site (Petar)            | 2026-10-15 | 2026-11-16
-Team video (all)                      | 2026-11-09 | 2026-11-16
+Streamlit app (Meckrem)               | 2026-10-15 | 2026-11-14
+Final report (Petar)                  | 2026-11-03 | 2026-11-15
+Presentation slides (Petar)           | 2026-10-15 | 2026-11-14
+Documentation site (Petar)            | 2026-10-15 | 2026-11-15
+Team video (all)                      | 2026-11-09 | 2026-11-14
 Checkpoint: First quarter             | 2026-10-12
 Checkpoint: Midpoint                  | 2026-10-23
 Checkpoint: Three-quarter             | 2026-11-03
@@ -46,4 +46,9 @@ Hover over or tap a task to see its dates.
 
 - Final report drafted on Nov 4: every section written, with Micah's figures, citations to Dylan's dataset briefs, and every source link checked (see [Final report](report.md))
 
-*Upcoming:* Streamlit app (Nov 10); final report finished (Nov 14); presentation slides and team video, both submitted on Canvas by 12 PM on Nov 16; in-class presentation on Thu, Nov 19.
+*Upcoming:*
+
+- **Sat, Nov 14:** data cleaning, Streamlit app, presentation slides, and team video finished
+- **Sun, Nov 15:** final report and documentation site finished
+- **Mon, Nov 16, 12 PM:** slides and team video submitted on Canvas
+- **Thu, Nov 19:** in-class presentation
