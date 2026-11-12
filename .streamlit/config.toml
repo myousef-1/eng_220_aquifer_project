@@ -1,15 +1,36 @@
 [theme]
 # Primary accent color for buttons, sliders, active tabs, etc.
-primaryColor = "#FF4B4B"
+primaryColor = "#5141aa"
 
 # Background color for the main content area
-backgroundColor = "#FFFFFF"
+backgroundColor = "#0a0957"
 
 # Background color for the sidebar and widgets (like text inputs, selectboxes)
 secondaryBackgroundColor = "#F0F2F6"
 
 # Font color for text
-textColor = "#262730"
+textColor = "#e7eaf0"
 
 # Font family ("sans serif", "serif", or "monospace")
 font = "sans serif"
+import streamlit as st
+
+st.markdown("""
+    <style>
+    /* Adjust padding for mobile screens */
+    @media (max-width: 768px) {
+        .stApp {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        /* Make headers slightly smaller on mobile for better readability */
+        h1 {
+            font-size: 1.8rem !important;
+        }
+        h2 {
+            font-size: 1.4rem !important;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
