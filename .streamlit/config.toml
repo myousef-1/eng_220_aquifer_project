@@ -1,15 +1,16 @@
-[theme]
-# Primary accent color for buttons, sliders, active tabs, etc.
-primaryColor = "#5141aa"
+
+
+# Primary accent color for buttons, sliders, etc.
+primaryColor = "#0db30d"
 
 # Background color for the main content area
-backgroundColor = "#0a0957"
+backgroundColor = "#0d3fa5"
 
-# Background color for the sidebar and widgets (like text inputs, selectboxes)
-secondaryBackgroundColor = "#F0F2F6"
+# Background color for the sidebar and widgets
+secondaryBackgroundColor = "#1c30dd"
 
-# Font color for text
-textColor = "#e7eaf0"
+# Text color
+textColor = "#FAFAFA"
 
 # Font family ("sans serif", "serif", or "monospace")
 font = "sans serif"
