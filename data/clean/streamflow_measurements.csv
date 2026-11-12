@@ -1,0 +1,11 @@
+site_id,site_name,latitude,longitude,date,source,time_local,measurement_number,discharge_cfs,width_ft,area_ft2,velocity_ft_per_s,distance_from_gage_ft,location_from_gage,measurement_type,channel_stability,channel_material,channel_evenness,horizontal_velocity,vertical_velocity,longitudinal_velocity,gage_height_ft,measurement_rating,control_condition
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2019-04-25,USGS,14:59,6,19.4,12.5,13.6,1.42,10,Downstream,Wading,Soft,Sand,Even,Uneven,Standard,Pulsating,2.95,Fair,Clear
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2019-10-03,USGS,10:02,7,0,,,,0,AtTheGage,Other,,,,,,,,,
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2020-05-04,USGS,13:16,8,20.4,12,13.3,1.53,20,Downstream,Wading,Soft,SiltMud,Even,Even,Standard,Steady,4.61,Poor,Debris - Light
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2020-08-03,USGS,11:52,9,0,,,,0,AtTheGage,Other,,,,,,,,,
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2020-10-06,USGS,11:12,10,0,,,,0,AtTheGage,Other,,,,,,,,,
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2021-04-14,USGS,12:34,11,6.89,11.5,7,0.98,5,Downstream,Wading,Soft,SiltMud,Uneven,Even,Standard,Steady,3.04,Poor,Clear
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2024-04-30,USGS,12:54,16,20.2,11,9.67,2.09,0,AtTheGage,Wading,Firm,Gravel,Even,Even,Standard,Steady,3.05,Fair,
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2024-10-10,USGS,14:45,17,0,,,,0,AtTheGage,Other,,,,,,,,,
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2025-12-08,USGS,11:30,18,0,,,,0,AtTheGage,Other,,,,,,,,,
+USGS-08332525,"RIO PUERCO AT CUBA, NM",36.01055556,-106.9805556,2026-03-09,USGS,12:10,19,0,,,,0,AtTheGage,Other,,,,,,,,,
