@@ -1,0 +1,37 @@
+
+
+# Primary accent color for buttons, sliders, etc.
+primaryColor = "#0db30d"
+
+# Background color for the main content area
+backgroundColor = "#0d3fa5"
+
+# Background color for the sidebar and widgets
+secondaryBackgroundColor = "#1c30dd"
+
+# Text color
+textColor = "#FAFAFA"
+
+# Font family ("sans serif", "serif", or "monospace")
+font = "sans serif"
+import streamlit as st
+
+st.markdown("""
+    <style>
+    /* Adjust padding for mobile screens */
+    @media (max-width: 768px) {
+        .stApp {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        /* Make headers slightly smaller on mobile for better readability */
+        h1 {
+            font-size: 1.8rem !important;
+        }
+        h2 {
+            font-size: 1.4rem !important;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
