@@ -11,6 +11,7 @@ pg = st.navigation([
     st.Page("app_pages/cuba.py", title="Cuba case study", icon=":material/location_on:"),
     st.Page("app_pages/data_sources.py", title="Data sources", icon=":material/database:"),
     st.Page("app_pages/sandbox.py", title="Sandbox", icon=":material/construction:"),
+    st.Page("app_pages/Waterestimater.py", title="Water Estimater", icon=":material/water_drop:"),
 ])
 # Chart style for every page: six charts can show small pictograms (wells, gages, river visits,
 # rating balls) instead of plain dots and bars; see analysis/icons.py. Off = the report's plain versions.
