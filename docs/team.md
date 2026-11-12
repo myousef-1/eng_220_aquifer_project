@@ -4,11 +4,11 @@ ENG 220 · Team 23 · Instructor: Ramiro Jordan
 
 | Member | Role |
 |---|---|
-| Petar Djordjevic (Prime Minister) | Documentation, final report, presentation, and video |
+| Petar Djordjevic (Prime Minister) | GitHub workflow, documentation, final report, presentation, and video |
 | Dylan Gonzales | Data acquisition and dataset justification |
 | James Wauneka | Data cleaning and preprocessing |
 | Micah Watkins | Analysis code and visualizations |
-| Meckrem Yousef | GitHub workflow and the Streamlit app |
+| Meckrem Yousef | Streamlit app design and development |
 
 
 ## Contributions
@@ -33,4 +33,4 @@ I wrote the analysis code and made the project's charts. All of it lives in the 
 
 ### Petar Djordjevic
 
-As Prime Minister, I coordinated the team, its schedule, and its deliverables, and I submit the team's slides and video on Canvas. I built and maintain this documentation site and the repository's README files, and I narrowed the proposal's nine research questions to the six that the collected data can answer. I wrote the final report in LaTeX, bringing together Dylan's dataset briefs, James's cleaned data, and Micah's figures with background research on Cuba's water system and a peace-engineering perspective. I also built the presentation slides and edit the team video. Details are on the [Final report](report.md) and [Presentation and video](presentation.md) pages.
+As Prime Minister, I coordinated the team, its schedule, and its deliverables, and I submit the team's slides and video on Canvas. I manage the team's GitHub workflow, keeping the repository organized and publishing each update; I built and maintain this documentation site and the repository's README files; and I narrowed the proposal's nine research questions to the six that the collected data can answer. I wrote the final report in LaTeX, bringing together Dylan's dataset briefs, James's cleaned data, and Micah's figures with background research on Cuba's water system and a peace-engineering perspective. I also built the presentation slides and edit the team video. Details are on the [Final report](report.md) and [Presentation and video](presentation.md) pages.

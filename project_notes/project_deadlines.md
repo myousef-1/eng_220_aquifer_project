@@ -3,9 +3,11 @@
 | Date | Deadline |
 |---|---|
 | Mon, Oct 12 | First-quarter checkpoint |
+| Tue, Oct 13 | Project proposal due |
 | Fri, Oct 23 | Midpoint checkpoint |
 | Tue, Nov 3 | Three-quarter checkpoint |
-| Tue, Nov 10 | Streamlit app finished (team deadline) |
+| Sat, Nov 14 | Team deadline: data cleaning, Streamlit app, presentation slides, and team video finished |
+| Sun, Nov 15 | Team deadline: final report and documentation site finished |
 | Mon, Nov 16, 12:00 PM | Final project due. The Prime Minister submits the presentation slides (.pptx) and the team video on Canvas. Late submissions get 0. |
 | Thu, Nov 19 | In-class presentation |
 

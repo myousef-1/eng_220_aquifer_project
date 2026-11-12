@@ -6,7 +6,7 @@ The team presents the project with one slide deck, both in a recorded team video
 
 ## Slides
 
-The slides are a working draft and will be updated as the team fills them in.
+The slides are a working draft and will be updated as the team fills them in. The team finishes them by Sat, Nov 14.
 
 - [View the slides (PDF)](files/beneath_the_mesa_slides.pdf)
 - [Download the slides (PowerPoint)](files/beneath_the_mesa_slides.pptx)
@@ -38,7 +38,7 @@ The slides follow the course grading rubric: slides 1 and 2 are the two-minute e
 
 ## Video
 
-The Prime Minister submits one recorded video of the team's presentation on Canvas by **12 PM on Mon, Nov 16**. Petar presents every slide except the five team-contribution slides (8 to 12), where each member explains their own part. Everyone keeps their camera on while speaking, as the assignment requires; the circle in the bottom-right corner of each slide is where the camera goes. A link will be posted here when the video is complete.
+The Prime Minister submits one recorded video of the team's presentation on Canvas by **12 PM on Mon, Nov 16**. Petar presents every slide except the five team-contribution slides (8 to 12), where each member explains their own part. Everyone keeps their camera on while speaking, as the assignment requires; the circle in the bottom-right corner of each slide is where the camera goes. The team finishes recording and editing by Sat, Nov 14, and a link will be posted here when the video is complete.
 
 ## In-class presentation
 
