@@ -8,7 +8,7 @@ The project schedule, and what the team completed at each course checkpoint.
 Team, topic, and roles (all)          | 2026-09-21 | 2026-10-12
 Project proposal (all)                | 2026-09-21 | 2026-10-13
 Data collection (Dylan)               | 2026-10-01 | 2026-10-29
-Data cleaning (James)                 | 2026-10-25 | 2026-11-14
+Data cleaning (James)                 | 2026-10-25 | 2026-11-12
 Analysis and visualizations (Micah)   | 2026-10-30 | 2026-11-03
 Streamlit app (Meckrem)               | 2026-11-03 | 2026-11-14
 Final report (Petar)                  | 2026-11-03 | 2026-11-15
@@ -45,10 +45,13 @@ Hover over or tap a task to see its dates.
 ## Final · Mon, Nov 16
 
 - Final report drafted on Nov 4: every section written, with Micah's figures, citations to Dylan's dataset briefs, and every source link checked (see [Final report](report.md))
+- Data cleaning finished by James on Nov 12: the remaining four datasets (NM Bureau of Geology groundwater levels, Rio Puerco at Cuba, well logs, and aquifer sensitivity) cleaned with a revised version of his MATLAB script, plus a written report on the cleaning and the data problems it found (see [Data cleaning](data-cleaning.md))
+- Analysis code switched to James's cleaned files on Nov 12, with every chart's results unchanged (see [Switching to the cleaned files](analysis.md#switching-to-the-cleaned-files-nov-12))
+- Water Estimator page, phone layout, and color theme added to the Streamlit app by Meckrem on Nov 12 (see [Streamlit app](streamlit-app.md))
 
 *Upcoming:*
 
-- **Sat, Nov 14:** data cleaning, Streamlit app, presentation slides, and team video finished
+- **Sat, Nov 14:** Streamlit app, presentation slides, and team video finished
 - **Sun, Nov 15:** final report and documentation site finished
 - **Mon, Nov 16, 12 PM:** slides and team video submitted on Canvas
 - **Thu, Nov 19:** in-class presentation
