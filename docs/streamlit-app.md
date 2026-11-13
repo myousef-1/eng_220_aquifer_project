@@ -19,8 +19,15 @@ Each page shows its charts with a one-line takeaway, what is plotted, the chart'
 | Cuba case study | Key numbers, a short answer to research question 3, a map of sites near Cuba, the nearest record in each dataset, the USGS Ojo Alamo depth map around Cuba, Ojo Alamo vs San Jose tests, and Rio Puerco visits | 3, 4 |
 | Data sources | Dataset list and links, a timeline of monitoring coverage, a dataset-by-question evidence matrix, aquifer-sensitivity classes, and a table of groundwater-stress indicators | 5, 6 |
 | Sandbox | A test page with random data (not project results) | - |
+| Water Estimator | Estimates a household's daily and monthly water use from everyday activities (showers, toilet flushes, faucet use, laundry, and dishwasher loads), compares the daily total with a New Mexico residential average of 81 gallons a day, and estimates a monthly water bill. The bill's base fee, included gallons, and rate per 1,000 gallons are starting values to replace with the numbers on a Village of Cuba utility statement. | - |
 
 The chart code lives in `analysis/` (see [Analysis and visualizations](analysis.md)); each page file in `app_pages/` calls `show_chart(...)` for its charts. The maps use the free CARTO basemap, which needs an internet connection.
+
+## Look and phone layout
+
+The app's colors are set in `.streamlit/config.toml` under `[theme]`: a blue background, a green accent, and light text. On narrow screens such as phones, a few lines of CSS at the top of `ProjectApp.py` reduce the side padding and shrink the headings, for every page.
+
+On Nov 12, the theme file was fixed so Streamlit could read it again. A block of Python had been pasted into it and its `[theme]` heading removed, so the app had been ignoring the file. The Python, which holds the phone-layout CSS, moved to `ProjectApp.py`.
 
 ## Running it yourself
 

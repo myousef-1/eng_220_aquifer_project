@@ -51,7 +51,7 @@ Three charts were made before the research questions were narrowed from nine to 
 
 ```
 analysis/
-  data.py           loads every dataset into the shared column format (cleaned files + minimal prep of raw files)
+  data.py           loads James's cleaned files (and the extra USGS series in dataset 1), keeping his column names
   stats.py          trend statistics: annual means, Sen's slope, Mann-Kendall test, Spearman correlation
   theme.py          colors and the shared Plotly look (light and dark)
   icons.py          the small flat pictograms used by the pictograph versions of six charts
@@ -141,6 +141,27 @@ Two inputs aren't in `data/clean/`:
 | `sandoval_county_boundary.geojson` | `load_county_boundary()` | A simplified county outline for map context, from the US Census Bureau via plotly/datasets (`geojson-counties-fips.json`, FIPS 35043). |
 
 Wells in the aquifer-test file are told apart by name and location (`well_key`), not by `site_id`, because most OSE POD IDs are incomplete (see [Data cleaning](data-cleaning.md#still-open)). Rows with the same well name and test date within 1 km of each other are treated as one well (the BIA-(RF)-033-2(10) Smelser Well was entered twice with slightly different coordinates).
+
+### Switching to the cleaned files (Nov 12)
+
+Micah finished the charts on Nov 3, before four of the datasets were cleaned, so `analysis/data.py` prepared those four from the raw files itself: converting UTM coordinates, joining the Rio Puerco gage heights to their visits, and so on. When James cleaned them on Nov 12, the code was changed to read his files instead, using his column names rather than renaming his columns back to the old ones. The charts' results didn't change.
+
+| Dataset | Before Nov 12 | Now | What changed in the code |
+|---|---|---|---|
+| NM Bureau of Geology groundwater levels | Raw `data2_groundwater_sandoval_county.csv`, prepared in `load_nmbgmr_levels()` | `groundwater_levels_nmbgmr.csv` | The loader just reads the file. Charts label wells by `site_id`, since `site_name` is blank. The Placitas chart reads each reading's `measurement_method` from the cleaned file instead of opening the raw file. |
+| Rio Puerco at Cuba | Three raw `data4_*.csv` files, joined in `load_rio_puerco()` | `streamflow_measurements.csv` | Charts use `discharge_cfs` (was `flow_cfs`) and `measurement_type` (was `measurement_method`; Other is shown as "Observed (no measurable flow)"). The loader adds one column, `flowing` (`discharge_cfs` above 0). |
+| Well logs | Raw `data7_Wells With Well Log Information.csv`, prepared in `load_well_logs()` | `well_logs.csv` | Charts use `depth_to_first_water_ft` (was `first_water_ft`) and label wells by POD number. `date` is now when drilling finished, not when it started. |
+| Aquifer sensitivity | Raw `data3_Aquifer_Sensitivity.csv`, read in `aquifer_sensitivity_classes()` | `aquifer_sensitivity.csv` | The chart uses `polygon_id`, `sensitivity`, and `area_sq_deg` (were `OBJECTID`, `SENSITIVITY`, and `Shape__Area`), and the class name Moderate (was Mod). |
+
+Each chart's source line now names the cleaned files, and the descriptions in `analysis/data.py`, `analysis/README.md`, and this page were updated to match. The chart images on this site and the report's figure files were remade.
+
+**Why the code changed, not just the file names.** James's files use different column names and spell out Moderate. Pointed at his files with no other changes, the old code would have stopped every chart that uses the Rio Puerco visits, including both Cuba maps and the county map. It would also have quietly dropped the Moderate class (339 of the 613 areas) from the sensitivity chart and left the NM Bureau of Geology wells and the well logs without labels.
+
+**How it was checked.** Every chart, including both versions of the six with pictograms, was drawn with the old code and the new code and compared. Every title, caption, and finding is the same, and the plotted values match; locations differ by less than 5 mm, from rounding in the cleaned files. Micah's tests (`analysis/test_stats.py`) pass, and every app page loads. The only visible differences:
+
+- Well SJ 00809 now shows 1979 instead of 1978, because `date` in `well_logs.csv` is when drilling finished. It moves one year on the coverage timeline and in the map and chart labels.
+- The app's Data sources page counts 451 NM Bureau of Geology readings instead of 456. The cleaned file leaves out the 5 dry-well readings, which the charts already skipped.
+- The aquifer-sensitivity caption names the `area_sq_deg` column.
 
 ## Colors and labels
 
