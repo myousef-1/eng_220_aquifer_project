@@ -4,15 +4,15 @@ Every loader returns a table that starts with the project's shared columns
 (``site_id, site_name, latitude, longitude, date, source``), the same
 convention James uses for the files in ``data/clean/``.
 
-Two kinds of loaders
-    * Cleaned files (``data/clean/``), made by James's ``cleaning/clean_csvs.m``:
-      ``load_groundwater_levels`` and ``load_aquifer_tests``.
-    * Raw files that are not cleaned yet. For these, the loader does only the
-      minimum preparation needed to chart them (convert UTM coordinates to
-      latitude/longitude, parse dates, rename columns). The raw files are never
-      changed. When James adds a cleaned version of one of these, swap the loader
-      body for a ``pd.read_csv`` of the cleaned file; the chart code won't need
-      to change because the column names already follow the conventions.
+Where the data come from
+    * James's cleaned files in ``data/clean/``, made by his MATLAB script in
+      ``cleaning/``: groundwater levels, aquifer tests, NMBGMR groundwater levels,
+      Rio Puerco streamflow, well logs, and aquifer sensitivity. Loaders read them
+      as they are and keep James's column names; they only add columns that are
+      analysis results (such as ``year``, ``well_key``, or ``flowing``).
+    * The other USGS series in dataset 1 (streamflow, reservoir storage, water
+      quality), read from the raw file by ``load_usgs_stats``, which keeps one
+      parameter and one interval type at a time. The raw files are never changed.
 
 Every preparation step and decision is listed in ``docs/analysis.md`` under
 "Data preparation inside the analysis code".
@@ -237,123 +237,57 @@ def load_aquifer_tests() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Raw files, minimal preparation (not yet cleaned by James)
+# More cleaned files (James)
 # ---------------------------------------------------------------------------
 @lru_cache(maxsize=None)
 def _nmbgmr_levels() -> pd.DataFrame:
-    raw = pd.read_csv(DATA / "data2_groundwater_sandoval_county.csv", na_values=["NULL"])
-    # UTMDatum is NAD83 for every row; Sandoval County is entirely in UTM zone 13.
-    lat, lon = utm_to_latlon(raw["Easting"], raw["Northing"], zone=13)
-    df = pd.DataFrame(
-        {
-            "site_id": raw["PointID"].astype(str),
-            "site_name": raw["PointID"].astype(str),
-            "latitude": lat,
-            "longitude": lon,
-            "date": pd.to_datetime(raw["DateMeasured"]).dt.normalize(),
-            "source": "NMBGMR",
-            "well_depth_ft": raw["WellDepth"],
-            "hole_depth_ft": raw["HoleDepth"],
-            "depth_to_water_ft": raw["DepthToWaterBGS"],
-            "level_status": raw["LevelStatus"],
-            "altitude_ft": raw["Altitude"],
-        }
-    )
-    df["area"] = np.select(
-        [df["site_id"].str.startswith("PC-"), df["site_id"].str.startswith("PB-")],
-        ["Placitas", "Peña Blanca"],
-        default="Other",
-    )
+    df = pd.read_csv(CLEAN / "groundwater_levels_nmbgmr.csv", dtype={"site_id": str},
+                     parse_dates=["date", "completion_date"])
     return df.sort_values(["site_id", "date"]).reset_index(drop=True)
 
 
 def load_nmbgmr_levels() -> pd.DataFrame:
-    """NM Bureau of Geology depth-to-water measurements: 456 rows, 87 wells, 1997-2019.
+    """NM Bureau of Geology depth-to-water measurements: 451 readings, 87 wells, 1997-2019 (cleaned).
 
-    Raw file ``data2_groundwater_sandoval_county.csv``; prepared in code:
-    UTM zone 13 (NAD83) converted to latitude/longitude, 'NULL' read as blank,
-    dates parsed. Rows with a blank depth (wells recorded dry, ``level_status`` 'D')
-    are kept so counts match the raw file; charts drop them.
+    The raw file (``data2_groundwater_sandoval_county.csv``) has 456 rows; the cleaning
+    drops the 5 with no depth (wells recorded dry). This source has no well names, so
+    ``site_name`` is blank and charts label wells by ``site_id``. ``level_status`` 'R'
+    means the well had recently been pumped.
     """
     return _nmbgmr_levels().copy()
 
 
 @lru_cache(maxsize=None)
 def _rio_puerco() -> pd.DataFrame:
-    meta = pd.read_csv(DATA / "data4_monitoring-location-metadata.csv")
-    flow = pd.read_csv(DATA / "data4_channel-measurements.csv")
-    stage = pd.read_csv(DATA / "data4_field-measurements.csv")
-    stage = stage.rename(columns={"value": "gage_height_ft"})[["field_visit_id", "gage_height_ft"]]
-    # Times are UTC; convert to local time before taking the calendar date.
-    when = pd.to_datetime(flow["time"], utc=True).dt.tz_convert("America/Denver")
-    df = pd.DataFrame(
-        {
-            "site_id": flow["monitoring_location_id"],
-            "site_name": tidy_site_name(meta.loc[0, "monitoring_location_name"]),
-            "latitude": flow["y"],
-            "longitude": flow["x"],
-            "date": when.dt.tz_localize(None).dt.normalize(),
-            "source": "USGS",
-            "flow_cfs": flow["channel_flow"].astype(float),
-            "measurement_method": flow["measurement_type"].replace({"Other": "Observed (no measurable flow)"}),
-            "field_visit_id": flow["field_visit_id"],
-        }
-    ).merge(stage, on="field_visit_id", how="left").drop(columns="field_visit_id")
-    df["flowing"] = df["flow_cfs"] > 0
+    df = pd.read_csv(CLEAN / "streamflow_measurements.csv", dtype={"site_id": str}, parse_dates=["date"])
+    df["flowing"] = df["discharge_cfs"] > 0
     return df.sort_values("date").reset_index(drop=True)
 
 
 def load_rio_puerco() -> pd.DataFrame:
-    """USGS 08332525 Rio Puerco at Cuba: 10 discrete streamflow visits, 2019-2026.
+    """USGS 08332525 Rio Puerco at Cuba: 10 discrete streamflow visits, 2019-2026 (cleaned).
 
-    Raw ``data4_*`` files; prepared in code: joined the 4 gage-height readings
-    to their visits, converted UTC times to local dates, flagged visits with
-    flow > 0. These are spot visits, not a continuous record.
+    Adds ``flowing`` (``discharge_cfs`` above 0). A ``measurement_type`` of 'Other'
+    means the visit found no measurable flow. These are spot visits, not a
+    continuous record.
     """
     return _rio_puerco().copy()
 
 
 @lru_cache(maxsize=None)
 def _well_logs() -> pd.DataFrame:
-    raw = pd.read_csv(DATA / "data7_Wells With Well Log Information.csv", dtype=str)
-    raw = raw[raw["County"].notna()].copy()  # last line of the file is a footnote
-    plss_flag = raw.iloc[:, 13].fillna("").str.strip() == "*"
-    x = raw["X"].astype(float)
-    y = raw["Y"].astype(float)
-    lat, lon = utm_to_latlon(x, y, zone=13)
-    df = pd.DataFrame(
-        {
-            "site_id": raw["POD Number"].str.split().str.join(" "),
-            "site_name": raw["POD Number"].str.split().str.join(" "),
-            "latitude": lat,
-            "longitude": lon,
-            "date": pd.to_datetime(raw["Start Date"]),
-            "source": "NM OSE",
-            "borehole_depth_ft": pd.to_numeric(raw["Borehole Depth"], errors="coerce"),
-            "first_water_ft": pd.to_numeric(raw["Depth Water First Encountered"], errors="coerce"),
-            "location_from_plss": plss_flag.values,
-            "plss": (raw["Sec"] + " " + raw["Tws"] + " " + raw["Range"]).values,
-            "driller": raw["Driller"].str.strip().values,
-        }
-    )
-    # SJ 04455 POD1: its PLSS location (sec 01, T21N R04W) is next to the other
-    # wells, but its UTM northing (4,077,235 m) puts it ~80 km north, outside
-    # Sandoval County. Probably a typo in the northing; we don't map it.
-    df["location_note"] = ""
-    outside = df["latitude"] > 36.25
-    df.loc[outside, "location_note"] = "UTM northing disagrees with PLSS location; not mapped"
-    df.loc[outside, ["latitude", "longitude"]] = np.nan
-    return df.reset_index(drop=True)
+    return pd.read_csv(CLEAN / "well_logs.csv", dtype={"site_id": str},
+                       parse_dates=["date", "start_date", "log_file_date"])
 
 
 def load_well_logs() -> pd.DataFrame:
-    """NM OSE well logs coded to Sandoval County (6 wells, drilled 1978-2022).
+    """NM OSE well logs coded to Sandoval County: 6 wells, finished 1979-2022 (cleaned).
 
-    Raw ``data7_Wells With Well Log Information.csv``; prepared in code: UTM zone 13
-    converted to lat/lon, extra spaces removed from POD numbers, the footnote row
-    dropped, and one well with an inconsistent northing left unmapped.
-    ``first_water_ft`` is the depth where water was first found on drilling day,
-    not a current water level.
+    ``date`` is when drilling finished (``start_date`` is when it began).
+    ``depth_to_first_water_ft`` is where water was first found while drilling, not a
+    current water level. ``site_name`` is blank, so charts label wells by POD number
+    (``site_id``). SJ 04455 POD1 has no latitude/longitude: its UTM coordinates fall
+    outside Sandoval County, probably a typo in the northing.
     """
     return _well_logs().copy()
 
@@ -446,6 +380,7 @@ def _monitoring_points() -> pd.DataFrame:
         name=("site_name", "first"), latitude=("latitude", "first"), longitude=("longitude", "first"),
         first_year=("year", "min"), last_year=("year", "max"), n_records=("date", "size"),
     ).reset_index()
+    n["name"] = n["name"].fillna(n["site_id"])
     n["dataset"] = "NMBGMR well measurements"
     n["data_type"] = "Water-level records"
     n["detail"] = n["n_records"].astype(str) + " depth-to-water readings"
@@ -466,7 +401,7 @@ def _monitoring_points() -> pd.DataFrame:
     wl = load_well_logs().dropna(subset=["latitude"])
     w = pd.DataFrame(
         {
-            "site_id": wl["site_id"], "name": wl["site_name"], "latitude": wl["latitude"],
+            "site_id": wl["site_id"], "name": wl["site_name"].fillna(wl["site_id"]), "latitude": wl["latitude"],
             "longitude": wl["longitude"], "first_year": wl["date"].dt.year, "last_year": wl["date"].dt.year,
             "n_records": 1, "dataset": "OSE well logs", "data_type": "Well construction and aquifer tests",
             "detail": "drilled " + wl["date"].dt.year.astype(str) + ", " + wl["borehole_depth_ft"].astype(int).astype(str) + " ft deep",
@@ -491,7 +426,7 @@ def _monitoring_points() -> pd.DataFrame:
     rows.append(
         pd.DataFrame(
             {
-                "site_id": [rp["site_id"].iloc[0]], "name": [rp["site_name"].iloc[0]],
+                "site_id": [rp["site_id"].iloc[0]], "name": [tidy_site_name(rp["site_name"].iloc[0])],
                 "latitude": [rp["latitude"].iloc[0]], "longitude": [rp["longitude"].iloc[0]],
                 "first_year": [rp["date"].dt.year.min()], "last_year": [rp["date"].dt.year.max()],
                 "n_records": [len(rp)], "dataset": ["USGS Rio Puerco at Cuba (visits)"],

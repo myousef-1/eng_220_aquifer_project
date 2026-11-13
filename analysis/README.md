@@ -9,7 +9,7 @@ everywhere. The full write-up, with every chart, is on the docs site's
 
 | File | What it does |
 |---|---|
-| `data.py` | Loads every dataset into the shared column format (`site_id`, `site_name`, `latitude`, `longitude`, `date`, `source`). Uses James's cleaned files where they exist; does minimal preparation of raw files that aren't cleaned yet (never edits them). |
+| `data.py` | Loads every dataset into the shared column format (`site_id`, `site_name`, `latitude`, `longitude`, `date`, `source`). Reads James's cleaned files in `data/clean/` with his column names, adding only analysis columns (such as `year` or `flowing`); reads the other USGS series from dataset 1 directly. |
 | `stats.py` | Annual means, Sen's slope, Mann-Kendall test, Spearman correlation, permutation p-value. Only numpy. |
 | `theme.py` | Colors and the shared Plotly look, in light and dark versions. Says what each color means. |
 | `icons.py` | Small flat pictograms (well, well log, water-table symbol, stream gage, drop, Harvey ball) for the pictograph versions of six charts, as SVG or PNG. States the rules they follow. |
@@ -51,9 +51,8 @@ python -m analysis.export_figures
 python -m analysis.write_docs
 ```
 
-**Swap in a newly cleaned file** (James): change the body of the matching loader in `data.py`
-(`load_nmbgmr_levels`, `load_rio_puerco`, or `load_well_logs`) to `pd.read_csv(CLEAN / "new_file.csv")`.
-The charts don't need to change, because the loaders already return the shared column names.
+**When James updates a cleaned file:** rerun the commands above so the images and docs match. If he
+renames a column, update the loader in `data.py` and the charts that use that column.
 
 **Pictograph or plain:** the six charts in `charts.PICTOGRAPH_CHARTS` take `pictograph=True` (default; used by the
 app and `docs/figures/`) or `pictograph=False` (the plain version used in `report/figures/`). In the app, the

@@ -2,6 +2,24 @@ import streamlit as st
 
 st.set_page_config(page_title="Beneath the Mesa", page_icon="💧", layout="wide")
 
+# Phone layout: less side padding and smaller headings on narrow screens (every page).
+st.markdown("""
+    <style>
+    @media (max-width: 768px) {
+        .stApp {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        h1 {
+            font-size: 1.8rem !important;
+        }
+        h2 {
+            font-size: 1.4rem !important;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # The sidebar menu. To add a page: create a file in app_pages/ and add a line here.
 pg = st.navigation([
     st.Page("app_pages/home.py", title="Home", icon=":material/home:", default=True),

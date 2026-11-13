@@ -80,10 +80,10 @@ SCOPE_PROJECT = "Whole project (all datasets)"
 FILES = {
     "gw": "data/clean/groundwater_levels_monthly.csv",
     "tests": "data/clean/aquifer_tests.csv",
-    "nmbgmr": "data/data2_groundwater_sandoval_county.csv",
-    "sens": "data/data3_Aquifer_Sensitivity.csv",
-    "rio_puerco": "data/data4_channel-measurements.csv and data4_field-measurements.csv",
-    "logs": "data/data7_Wells With Well Log Information.csv",
+    "nmbgmr": "data/clean/groundwater_levels_nmbgmr.csv",
+    "sens": "data/clean/aquifer_sensitivity.csv",
+    "rio_puerco": "data/clean/streamflow_measurements.csv",
+    "logs": "data/clean/well_logs.csv",
     "usgs": "data/water_flow_data_sandoval_county_sources.csv (dataset 1)",
     "boundary": "data/sandoval_county_boundary.geojson (US Census Bureau, via plotly/datasets)",
 }
@@ -594,12 +594,11 @@ def placitas_remeasured(dark: bool = False, pictograph: bool = True) -> Chart:
     agg["early_readings_flagged_R"] = flagged.reindex(agg.index).fillna(0).astype(int)
     meta = nm.drop_duplicates("site_id").set_index("site_id")[["well_depth_ft", "latitude", "longitude"]]
     agg = agg.join(meta).sort_values("change_ft")
-    raw = pd.read_csv(d.DATA / "data2_groundwater_sandoval_county.csv", na_values=["NULL"],
-                      usecols=["PointID", "DateMeasured", "MeasurementMethod"])
-    raw = raw[raw["PointID"].isin(ids)]
-    raw["late"] = raw["DateMeasured"].str[:4].astype(int) >= 2016
-    meth_e = "/".join(sorted(raw.loc[~raw["late"], "MeasurementMethod"].unique()))
-    meth_l = "/".join(sorted(raw.loc[raw["late"], "MeasurementMethod"].unique()))
+    meth = d.load_nmbgmr_levels()
+    meth = meth[meth["site_id"].isin(ids)]
+    meth["late"] = meth["date"].dt.year >= 2016
+    meth_e = "/".join(sorted(meth.loc[~meth["late"], "measurement_method"].dropna().unique()))
+    meth_l = "/".join(sorted(meth.loc[meth["late"], "measurement_method"].dropna().unique()))
     rows = [f"{sid}{'†' if agg.loc[sid, 'early_readings_flagged_R'] > 0 else ''}" for sid in agg.index]
     gaps = (sub[sub["period"] == "early"].sort_values("date").groupby("site_id")["date"].diff().dt.days.dropna())
     typical_gap = int(round(gaps.median())) if len(gaps) else None
@@ -699,6 +698,7 @@ def _one_point_per_well(need_well_depth: bool = True) -> tuple[pd.DataFrame, pd.
                                      depth_to_water_ft=("depth_to_water_ft", "median"),
                                      latitude=("latitude", "first"), longitude=("longitude", "first"),
                                      year=("date", lambda s: s.dt.year.min()), n=("date", "size")).reset_index()
+    nm1["name"] = nm1["name"].fillna(nm1["site_id"])
     nm1["record_type"] = "NMBGMR wells, median reading"
     nm1["note"] = nm1["n"].astype(str) + " reading(s), first " + nm1["year"].astype(str)
 
@@ -708,9 +708,9 @@ def _one_point_per_well(need_well_depth: bool = True) -> tuple[pd.DataFrame, pd.
     at1["record_type"] = "OSE aquifer tests, level at test"
     at1["note"] = at1["formation_short"].fillna("formation not recorded") + ", tested " + at1["year"].astype(str)
 
-    wl = d.load_well_logs().dropna(subset=["first_water_ft"])
-    wl1 = pd.DataFrame({"name": wl["site_name"], "well_depth_ft": wl["borehole_depth_ft"],
-                        "depth_to_water_ft": wl["first_water_ft"], "latitude": wl["latitude"],
+    wl = d.load_well_logs().dropna(subset=["depth_to_first_water_ft"])
+    wl1 = pd.DataFrame({"name": wl["site_name"].fillna(wl["site_id"]), "well_depth_ft": wl["borehole_depth_ft"],
+                        "depth_to_water_ft": wl["depth_to_first_water_ft"], "latitude": wl["latitude"],
                         "longitude": wl["longitude"], "year": wl["date"].dt.year,
                         "record_type": "OSE well logs, water first found",
                         "note": "drilled " + wl["date"].dt.year.astype(str)})
@@ -1796,10 +1796,10 @@ def _rio_puerco_pictograms(fig: go.Figure, rp: pd.DataFrame, dark: bool):
     outline = no measurable flow); the right panel stacks one drop per visit by month."""
     p = palette(dark)
     full, empty = icons.glyph_svg("drop", p["aqua"]), icons.glyph_svg("drop", p["ink2"], hollow=True)
-    top = max(rp["flow_cfs"].max() * 1.25, 5)
+    top = max(rp["discharge_cfs"].max() * 1.25, 5)
     h = top * 0.115                           # drop height in ft³/s units (left panel)
     for _, r_ in rp.iterrows():
-        yv = r_["flow_cfs"] if r_["flowing"] else 0.0
+        yv = r_["discharge_cfs"] if r_["flowing"] else 0.0
         # the drop's round body (62% down the glyph) sits on the measured value
         fig.add_layout_image(source=full if r_["flowing"] else empty, x=r_["date"], y=yv + 0.62 * h, xref="x",
                              yref="y", sizex=900 * 86400000, sizey=h, xanchor="center", yanchor="top",
@@ -1850,16 +1850,16 @@ def rio_puerco_visits(dark: bool = False, pictograph: bool = True) -> Chart:
                if flowing else "%{customdata[0]}: <b>no measurable flow</b> at the gage<extra></extra>")
         cd = np.column_stack([s["date"].dt.strftime("%d %b %Y"),
                               s["gage_height_ft"].map(lambda v: f"{v:.2f}" if pd.notna(v) else "n/a"),
-                              s["measurement_method"]])
+                              s["measurement_type"].replace({"Other": "Observed (no measurable flow)"})])
         if pictograph:  # transparent hover targets on the pictograms
             hide = dict(opacity=0, size=18)
-            fig.add_trace(go.Scatter(x=s["date"], y=s["flow_cfs"], mode="markers", showlegend=False, customdata=cd,
+            fig.add_trace(go.Scatter(x=s["date"], y=s["discharge_cfs"], mode="markers", showlegend=False, customdata=cd,
                                      hovertemplate=hov, marker=hide), row=1, col=1)
             allk = rp.sort_values("date").groupby("month").cumcount() + 1
             fig.add_trace(go.Scatter(x=s["month"], y=allk.reindex(s.index), mode="markers", showlegend=False,
                                      customdata=cd, hovertemplate=hov, marker=hide), row=1, col=2)
             continue
-        fig.add_trace(go.Scatter(x=s["date"], y=s["flow_cfs"], mode="markers+text", text=s["mon"],
+        fig.add_trace(go.Scatter(x=s["date"], y=s["discharge_cfs"], mode="markers+text", text=s["mon"],
                                  textposition=s["textpos"].tolist(), textfont=dict(size=12, color=p["ink2"]),
                                  legendgroup=str(flowing), customdata=cd, hovertemplate=hov, **styles[flowing]),
                       row=1, col=1)
@@ -1867,10 +1867,10 @@ def rio_puerco_visits(dark: bool = False, pictograph: bool = True) -> Chart:
         k = s.groupby("month").cumcount()
         n_in_month = s.groupby("month")["month"].transform("size")
         xm = s["month"] + (k - (n_in_month - 1) / 2) * 0.28
-        fig.add_trace(go.Scatter(x=xm, y=s["flow_cfs"], mode="markers", showlegend=False,
+        fig.add_trace(go.Scatter(x=xm, y=s["discharge_cfs"], mode="markers", showlegend=False,
                                  legendgroup=str(flowing), customdata=cd, hovertemplate=hov,
                                  marker=styles[flowing]["marker"]), row=1, col=2)
-    top = max(rp["flow_cfs"].max() * 1.25, 5)
+    top = max(rp["discharge_cfs"].max() * 1.25, 5)
     fig.update_yaxes(title_text="Streamflow (ft³/s)", range=[-4, top], row=1, col=1)
     for c in ((1,) if pictograph else (1, 2)):
         fig.add_hline(y=0, line=dict(color=p["axis"], width=1), row=1, col=c)
@@ -1889,7 +1889,7 @@ def rio_puerco_visits(dark: bool = False, pictograph: bool = True) -> Chart:
              f"and on none of the {len(dry)} visits from {MONTHS[min(after) - 1]} to {MONTHS[max(before) - 1]}")
     findings = [
         ("Measured", f"{len(dry)} of {len(rp)} visits ({_years(rp['date'].dt.year)}) found no measurable flow; flowing visits "
-                     f"measured {flow['flow_cfs'].min():.2f}-{flow['flow_cfs'].max():.1f} ft³/s, all in "
+                     f"measured {flow['discharge_cfs'].min():.2f}-{flow['discharge_cfs'].max():.1f} ft³/s, all in "
                      f"{' or '.join(MONTHS[m - 1] for m in fm)}."),
         ("Hypothesis", "Flow at Cuba may depend mostly on spring snowmelt from the mountains upstream; ten visits are "
                        "consistent with that but can't prove it."),
@@ -2474,7 +2474,7 @@ def _sensitivity_waffles(fig: go.Figure, g: pd.DataFrame, order: list, names: di
     one square = 1% of the polygons (left) or of the listed area (right)."""
     p = palette(dark)
     ramp = RAMP_DARK if dark else RAMP_LIGHT
-    shade = {"High": ramp[3], "Mod": ramp[1], "Less": ramp[0]}
+    shade = {"High": ramp[3], "Moderate": ramp[1], "Less": ramp[0]}
     offset = 12.5
     scale = []
     for k, cls in enumerate(order):  # discrete colorscale: class index -> its shade
@@ -2520,12 +2520,12 @@ def _sensitivity_bars(fig: go.Figure, g: pd.DataFrame, order: list, names: dict,
 
 def aquifer_sensitivity_classes(dark: bool = False, pictograph: bool = True) -> Chart:
     p = palette(dark)
-    raw = pd.read_csv(d.DATA / "data3_Aquifer_Sensitivity.csv", encoding="utf-8-sig")
-    names = {"High": "High", "Mod": "Moderate", "Less": "Less"}
-    g = raw.groupby("SENSITIVITY").agg(polygons=("OBJECTID", "size"), area=("Shape__Area", "sum"))
+    raw = pd.read_csv(d.CLEAN / "aquifer_sensitivity.csv")
+    names = {"High": "High", "Moderate": "Moderate", "Less": "Less"}
+    g = raw.groupby("sensitivity").agg(polygons=("polygon_id", "size"), area=("area_sq_deg", "sum"))
     g["share_polygons_pct"] = 100 * g["polygons"] / g["polygons"].sum()
     g["share_area_pct"] = 100 * g["area"] / g["area"].sum()
-    order = [k for k in ["High", "Mod", "Less"] if k in g.index]
+    order = [k for k in ["High", "Moderate", "Less"] if k in g.index]
     g = g.loc[order]
     if pictograph:
         fig = go.Figure()
@@ -2554,8 +2554,8 @@ def aquifer_sensitivity_classes(dark: bool = False, pictograph: bool = True) -> 
         title=title,
         subtitle=("Aquifer-sensitivity classes in the downloaded table (dataset 3): share of polygons and share of listed area"
                   + ("; one square = 1%" if pictograph else "")),
-        caption=("Area shares use the table's Shape__Area column, whose units aren't stated (they appear to be square "
-                 "degrees, which shrink slightly northward), so the shares are approximate. Polygon counts and area "
+        caption=("Area shares use the table's area_sq_deg column, in square degrees (the source doesn't state units; "
+                 "square degrees shrink slightly northward), so the shares are approximate. Polygon counts and area "
                  "shares differ because a few large polygons dominate. This describes the downloaded inventory, not Cuba."
                  + (" Squares are rounded to whole percents so each grid adds up to 100." if pictograph else "")),
         scope=("Probably statewide, not Sandoval County or Cuba (the file has no locations; if its area units are "

@@ -122,18 +122,25 @@ python -m analysis.write_docs          # refreshes the generated parts of this p
 
 ## Data preparation inside the analysis code
 
-James cleaned two datasets (`data/clean/`). The others aren't cleaned yet, so `analysis/data.py` does the minimum needed to chart them, without changing the raw files. Each loader returns the shared columns (`site_id`, `site_name`, `latitude`, `longitude`, `date`, `source`), so when James adds a cleaned file, only the loader changes.
+Every dataset the charts use comes from James's cleaned files in `data/clean/` (see [Data cleaning](data-cleaning.md)), except the extra USGS series in dataset 1. `analysis/data.py` reads each cleaned file as it is, keeps James's column names, and only adds columns that are analysis results.
 
-| Raw file | Loader | What the code does |
+| Cleaned file | Loader | What the code adds |
 |---|---|---|
-| `data2_groundwater_sandoval_county.csv` (NMBGMR) | `load_nmbgmr_levels()` | Reads `NULL` as blank; converts UTM zone 13 (NAD83) easting/northing to latitude/longitude; parses dates. Rows with no depth (wells recorded dry) are kept but left out of charts. |
-| `data4_channel-measurements.csv`, `data4_field-measurements.csv`, `data4_monitoring-location-metadata.csv` (Rio Puerco at Cuba) | `load_rio_puerco()` | Joins the 4 gage-height readings to their visits; converts UTC times to local dates; flags visits with flow above 0. |
-| `data7_Wells With Well Log Information.csv` (OSE well logs) | `load_well_logs()` | Drops the footnote line; removes extra spaces from POD numbers; converts UTM zone 13 to latitude/longitude. **SJ 04455 POD1** isn't mapped: its northing puts it about 80 km north of its legal description (section 1, T21N R4W), probably a typo. |
+| `groundwater_levels_monthly.csv` (USGS wells) | `load_groundwater_levels()` | `site_group` (e.g. Sandia site), `well` (Well, Well A, Well B), and `year`. |
+| `aquifer_tests.csv` (OSE aquifer tests) | `load_aquifer_tests()` | `well_key`, `formation_short`, `year`, and `distance_from_cuba_km` (see below). |
+| `groundwater_levels_nmbgmr.csv` (NMBGMR) | `load_nmbgmr_levels()` | Nothing. The wells have no names, so charts label them by `site_id`. |
+| `streamflow_measurements.csv` (Rio Puerco at Cuba) | `load_rio_puerco()` | `flowing`: whether `discharge_cfs` is above 0. A `measurement_type` of Other means no measurable flow. |
+| `well_logs.csv` (OSE well logs) | `load_well_logs()` | Nothing. Charts label wells by POD number (`site_id`) and use `date`, the day drilling finished. **SJ 04455 POD1** isn't mapped: its UTM coordinates fall outside the county, probably a typo in the northing. |
+| `aquifer_sensitivity.csv` | read in `charts.aquifer_sensitivity_classes()` | Counts polygons by class and sums `area_sq_deg` (approximate shares). Nothing is mapped, because the file has no locations. |
+
+Two inputs aren't in `data/clean/`:
+
+| File | Loader | What the code does |
+|---|---|---|
 | `water_flow_data_sandoval_county_sources.csv` (USGS dataset 1; the charts use its streamflow statistics) | `load_usgs_stats()` | Keeps one parameter and one interval type at a time (never mixing monthly and yearly rows), and only the central statistic (mean, or median for pH). |
-| `data3_Aquifer_Sensitivity.csv` | read in `charts.aquifer_sensitivity_classes()` | Counts polygons by class and sums their listed area (approximate shares; the units aren't stated). Nothing is mapped, because the file has no locations. |
 | `sandoval_county_boundary.geojson` | `load_county_boundary()` | A simplified county outline for map context, from the US Census Bureau via plotly/datasets (`geojson-counties-fips.json`, FIPS 35043). |
 
-From the cleaned files: wells in the aquifer-test file are told apart by name and location (`well_key`), not by `site_id`, because most OSE POD IDs are incomplete (see [Data cleaning](data-cleaning.md#still-open)). Rows with the same well name and test date within 1 km of each other are treated as one well (the BIA-(RF)-033-2(10) Smelser Well was entered twice with slightly different coordinates). The UTM conversion was checked against `pyproj`; the two agree to better than 0.00000001°.
+Wells in the aquifer-test file are told apart by name and location (`well_key`), not by `site_id`, because most OSE POD IDs are incomplete (see [Data cleaning](data-cleaning.md#still-open)). Rows with the same well name and test date within 1 km of each other are treated as one well (the BIA-(RF)-033-2(10) Smelser Well was entered twice with slightly different coordinates).
 
 ## Colors and labels
 
@@ -197,7 +204,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 5, 1, 3 |
 | What is plotted | Every mapped site in the project's datasets (1926-2026 records), colored by what it measures; outline = Sandoval County |
 | Scope | Sandoval County, including the Cuba area |
-| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/data2_groundwater_sandoval_county.csv, data/data7_Wells With Well Log Information.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/data4_channel-measurements.csv and data4_field-measurements.csv; county outline: data/sandoval_county_boundary.geojson (US Census Bureau, via plotly/datasets) |
+| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/clean/groundwater_levels_nmbgmr.csv, data/clean/well_logs.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/clean/streamflow_measurements.csv; county outline: data/sandoval_county_boundary.geojson (US Census Bureau, via plotly/datasets) |
 | App page | County map |
 | Code | `charts.county_coverage_map()` in `analysis/charts.py` |
 
@@ -270,7 +277,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 1, 5 |
 | What is plotted | Each well drawn to scale: casing down to the well bottom, water standing in it now, and the water table (▽) in 1997-1998 and 2018-2019; NMBGMR wells measured in both periods |
 | Scope | Placitas area of Sandoval County, about 90 km from Cuba (not Cuba) |
-| Data | NM Bureau of Geology and Mineral Resources groundwater levels (data/data2_groundwater_sandoval_county.csv, prepared in analysis/data.py) |
+| Data | NM Bureau of Geology and Mineral Resources groundwater levels (data/clean/groundwater_levels_nmbgmr.csv, prepared in analysis/data.py) |
 | App page | Groundwater levels |
 | Code | `charts.placitas_remeasured()` in `analysis/charts.py` |
 
@@ -295,7 +302,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 2 |
 | What is plotted | One point per well: well depth vs depth to water, from three record types, 1930-2022 |
 | Scope | Sandoval County, including the Cuba area (most wells are around Placitas and Cochiti; 7 within 25 km of Cuba) |
-| Data | NMBGMR groundwater levels (data/data2_groundwater_sandoval_county.csv), NM OSE aquifer tests (data/clean/aquifer_tests.csv), NM OSE well logs (data/data7_Wells With Well Log Information.csv) |
+| Data | NMBGMR groundwater levels (data/clean/groundwater_levels_nmbgmr.csv), NM OSE aquifer tests (data/clean/aquifer_tests.csv), NM OSE well logs (data/clean/well_logs.csv) |
 | App page | Wells and aquifers |
 | Code | `charts.well_depth_vs_water()` in `analysis/charts.py` |
 
@@ -320,7 +327,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 2, 3 |
 | What is plotted | Depth to water for each well with a recorded level, 1930-2022, grouped by the nearest town; black tick = area median |
 | Scope | Sandoval County, including the Cuba area |
-| Data | NMBGMR groundwater levels (data/data2_groundwater_sandoval_county.csv), NM OSE aquifer tests (data/clean/aquifer_tests.csv), NM OSE well logs (data/data7_Wells With Well Log Information.csv) |
+| Data | NMBGMR groundwater levels (data/clean/groundwater_levels_nmbgmr.csv), NM OSE aquifer tests (data/clean/aquifer_tests.csv), NM OSE well logs (data/clean/well_logs.csv) |
 | App page | Wells and aquifers |
 | Code | `charts.depth_by_area()` in `analysis/charts.py` |
 
@@ -369,7 +376,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 3, 5 |
 | What is plotted | One pictogram per location within 60 km of Cuba; aquifer-test wells sized by transmissivity class; rings at 10, 25, and 50 km |
 | Scope | Cuba and surroundings (within 60 km) |
-| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/data2_groundwater_sandoval_county.csv, data/data7_Wells With Well Log Information.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/data4_channel-measurements.csv and data4_field-measurements.csv; county outline: data/sandoval_county_boundary.geojson (US Census Bureau, via plotly/datasets) |
+| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/clean/groundwater_levels_nmbgmr.csv, data/clean/well_logs.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/clean/streamflow_measurements.csv; county outline: data/sandoval_county_boundary.geojson (US Census Bureau, via plotly/datasets) |
 | App page | Cuba case study |
 | Code | `charts.cuba_area_map()` in `analysis/charts.py` |
 
@@ -394,7 +401,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 3, 5 |
 | What is plotted | For each dataset, the distance from Cuba's village center to its closest site, and that site's record years |
 | Scope | Cuba and the nearest site in each dataset |
-| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/data2_groundwater_sandoval_county.csv, data/data7_Wells With Well Log Information.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/data4_channel-measurements.csv and data4_field-measurements.csv |
+| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/clean/groundwater_levels_nmbgmr.csv, data/clean/well_logs.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/clean/streamflow_measurements.csv |
 | App page | Cuba case study |
 | Code | `charts.cuba_nearest_records()` in `analysis/charts.py` |
 
@@ -466,7 +473,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 3, 5, 6 |
 | What is plotted | Each drop is one USGS field visit to station 08332525 (2019-2026); left by date (labeled with the month), right by month of year; not a continuous record |
 | Scope | Cuba (measured at Cuba), surface water only (gage 2.3 km from the village center) |
-| Data | USGS station 08332525, Rio Puerco at Cuba, NM (data/data4_channel-measurements.csv and data4_field-measurements.csv) |
+| Data | USGS station 08332525, Rio Puerco at Cuba, NM (data/clean/streamflow_measurements.csv) |
 | App page | Cuba case study |
 | Code | `charts.rio_puerco_visits()` in `analysis/charts.py` |
 
@@ -490,7 +497,7 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 5, 6 |
 | What is plotted | Number of sites with at least one record, by year (1926-2026); top: whole county, bottom: the Cuba area only |
 | Scope | Whole project (all datasets) |
-| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/data2_groundwater_sandoval_county.csv, data/data7_Wells With Well Log Information.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/data4_channel-measurements.csv and data4_field-measurements.csv |
+| Data | data/clean/groundwater_levels_monthly.csv, data/clean/aquifer_tests.csv, data/clean/groundwater_levels_nmbgmr.csv, data/clean/well_logs.csv, data/water_flow_data_sandoval_county_sources.csv (dataset 1), data/clean/streamflow_measurements.csv |
 | App page | Data sources |
 | Code | `charts.coverage_timeline()` in `analysis/charts.py` |
 
@@ -537,11 +544,11 @@ Each section below is written from the chart itself, so it always matches the ap
 | Research questions | 5, 6 |
 | What is plotted | Aquifer-sensitivity classes in the downloaded table (dataset 3): share of polygons and share of listed area; one square = 1% |
 | Scope | Probably statewide, not Sandoval County or Cuba (the file has no locations; if its area units are square degrees, the listed areas add up to about the size of New Mexico) |
-| Data | New Mexico Water Data, aquifer sensitivity (data/data3_Aquifer_Sensitivity.csv) |
+| Data | New Mexico Water Data, aquifer sensitivity (data/clean/aquifer_sensitivity.csv) |
 | App page | Data sources |
 | Code | `charts.aquifer_sensitivity_classes()` in `analysis/charts.py` |
 
-**How to read it and method:** Area shares use the table's Shape__Area column, whose units aren't stated (they appear to be square degrees, which shrink slightly northward), so the shares are approximate. Polygon counts and area shares differ because a few large polygons dominate. This describes the downloaded inventory, not Cuba. Squares are rounded to whole percents so each grid adds up to 100.
+**How to read it and method:** Area shares use the table's area_sq_deg column, in square degrees (the source doesn't state units; square degrees shrink slightly northward), so the shares are approximate. Polygon counts and area shares differ because a few large polygons dominate. This describes the downloaded inventory, not Cuba. Squares are rounded to whole percents so each grid adds up to 100.
 
 **Findings:**
 
