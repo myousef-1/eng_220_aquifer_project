@@ -205,7 +205,7 @@ levels = data.load_groundwater_levels()   # data/clean/groundwater_levels_monthl
 tests = data.load_aquifer_tests()         # data/clean/aquifer_tests.csv
 ```
 
-When James adds a newly cleaned file, only the matching loader in `analysis/data.py` changes; the charts and pages stay the same. See `analysis/README.md` for the full list.
+Every dataset has a loader, such as `data.load_nmbgmr_levels()`, `data.load_rio_puerco()`, and `data.load_well_logs()`, and each reads one of James's cleaned files in `data/clean/` with his column names. See `analysis/README.md` for the full list.
 
 ### Updating the Charts
 

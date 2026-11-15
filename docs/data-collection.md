@@ -33,7 +33,8 @@ The raw files are in the repository's [`data/` folder](https://github.com/pdjord
 ### 1. USGS groundwater-level statistics
 
 **File:** `water_flow_data_sandoval_county_sources.csv`<br>
-**Source:** [USGS Water Data statistics download](https://api.waterdata.usgs.gov/download/statistics/?statistics=intervals&site_type_code=GW&computation_type=arithmetic_mean&computation_type=maximum&computation_type=median&computation_type=minimum&computation_type=percentile&state_code=US%3A35&county_code=US%3A35%3A043&normal_type=DOY&normal_type=MOY&interval_type=M&interval_type=CY&interval_type=WY)
+**Source:** [USGS Water Data statistics download](https://api.waterdata.usgs.gov/download/statistics/?statistics=intervals&site_type_code=GW&computation_type=arithmetic_mean&computation_type=maximum&computation_type=median&computation_type=minimum&computation_type=percentile&state_code=US%3A35&county_code=US%3A35%3A043&normal_type=DOY&normal_type=MOY&interval_type=M&interval_type=CY&interval_type=WY)<br>
+**Cleaned into:** `data/clean/groundwater_levels_monthly.csv` (the groundwater levels) (see [Data cleaning](data-cleaning.md#usgs-groundwater-levels))
 
 USGS monthly and yearly statistics for 30 monitoring sites in Sandoval County (9 wells, 17 stream gages, 2 canals, and 2 reservoirs), with records from 1926 to 2026. Besides depth to groundwater, it covers streamflow, reservoir storage, suspended sediment, water temperature, and water quality (specific conductance, dissolved oxygen, pH, and turbidity). Dylan's brief covers the groundwater part: 9,462 records from 9 wells at four sites (Sandia, Lincoln Middle School, Bernalillo, and Dome Road), from about 1998 to 2026.
 
@@ -43,7 +44,8 @@ USGS monthly and yearly statistics for 30 monitoring sites in Sandoval County (9
 ### 2. NM Bureau of Geology groundwater levels
 
 **File:** `data2_groundwater_sandoval_county.csv`<br>
-**Source:** [New Mexico Water Data: groundwater levels](https://catalog.newmexicowaterdata.org/dataset/groundwater-levels/resource/de88e71a-3f5b-4bc9-8fb0-28b81c198952)
+**Source:** [New Mexico Water Data: groundwater levels](https://catalog.newmexicowaterdata.org/dataset/groundwater-levels/resource/de88e71a-3f5b-4bc9-8fb0-28b81c198952)<br>
+**Cleaned into:** `data/clean/groundwater_levels_nmbgmr.csv` (see [Data cleaning](data-cleaning.md#nm-bureau-of-geology-groundwater-levels))
 
 456 depth-to-water measurements from 87 wells in Sandoval County, 1997 to 2019, from the New Mexico Bureau of Geology and Mineral Resources. Each record has the well's location (UTM easting and northing), well depth, hole depth, measurement date, and depth to water below ground.
 
@@ -53,7 +55,8 @@ USGS monthly and yearly statistics for 30 monitoring sites in Sandoval County (9
 ### 3. Aquifer sensitivity
 
 **File:** `data3_Aquifer_Sensitivity.csv`<br>
-**Source:** [New Mexico Water Data: aquifer sensitivity](https://catalog.newmexicowaterdata.org/dataset/aquifer-sensitivity) ([map layer](https://catalog.newmexicowaterdata.org/dataset/aquifer-sensitivity/resource/edf278aa-7c5b-4b65-97aa-c6825fa9015c))
+**Source:** [New Mexico Water Data: aquifer sensitivity](https://catalog.newmexicowaterdata.org/dataset/aquifer-sensitivity) ([map layer](https://catalog.newmexicowaterdata.org/dataset/aquifer-sensitivity/resource/edf278aa-7c5b-4b65-97aa-c6825fa9015c))<br>
+**Cleaned into:** `data/clean/aquifer_sensitivity.csv` (see [Data cleaning](data-cleaning.md#aquifer-sensitivity))
 
 613 mapped areas from the New Mexico Environment Department, each with a sensitivity class (339 Moderate, 152 High, and 122 Less) and the area's size and perimeter. The CSV has no coordinates or shapes, so it can't be mapped or matched to Cuba on its own.
 
@@ -63,7 +66,8 @@ USGS monthly and yearly statistics for 30 monitoring sites in Sandoval County (9
 ### 4. Rio Puerco at Cuba
 
 **Files:** `data4_monitoring-location-metadata.csv`, `data4_field-measurements.csv`, `data4_channel-measurements.csv`<br>
-**Source:** [USGS Water Data for the Nation: Rio Puerco at Cuba, NM (USGS-08332525)](https://waterdata.usgs.gov/monitoring-location/USGS-08332525/) ([station map on the Water Quality Portal](https://www.waterqualitydata.us/provider/NWIS/USGS-NM/USGS-08332525/))
+**Source:** [USGS Water Data for the Nation: Rio Puerco at Cuba, NM (USGS-08332525)](https://waterdata.usgs.gov/monitoring-location/USGS-08332525/) ([station map on the Water Quality Portal](https://www.waterqualitydata.us/provider/NWIS/USGS-NM/USGS-08332525/))<br>
+**Cleaned into:** `data/clean/streamflow_measurements.csv` (see [Data cleaning](data-cleaning.md#rio-puerco-at-cuba))
 
 The only dataset measured at Cuba itself: USGS station 08332525 on the Rio Puerco. The three files hold the station's details and coordinates, 4 gage-height readings (2019 to 2024), and 10 streamflow measurements (2019 to 2026). Six of the streamflow visits found no flow, and the other four measured 6.89 to 20.40 cubic feet per second.
 
@@ -93,7 +97,8 @@ A study of about 840 km² near Lindrith that uses more than 350 geophysical logs
 ### 7. Wells with well logs
 
 **File:** `data7_Wells With Well Log Information.csv`<br>
-**Source:** NM Office of the State Engineer, [New Mexico Water Rights Reporting System](https://nmwrrs.ose.nm.gov/), "Wells With Well Log Information" report for the San Juan basin
+**Source:** NM Office of the State Engineer, [New Mexico Water Rights Reporting System](https://nmwrrs.ose.nm.gov/), "Wells With Well Log Information" report for the San Juan basin<br>
+**Cleaned into:** `data/clean/well_logs.csv` (see [Data cleaning](data-cleaning.md#well-logs))
 
 Drilling records for 6 wells in Sandoval County, drilled between 1978 and 2022, with location, borehole depth, depth where water was first found, and driller. They come from a San Juan basin download of 1,379 well logs across four counties, which Dylan's brief describes.
 

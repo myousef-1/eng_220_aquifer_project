@@ -60,6 +60,31 @@ with st.expander("Datasets included in this app", expanded=True):
           labeled crop of its depth map is shown on the Cuba case study page, but it isn't digitized.
         """
     )
+st.subheader("In the app")
+st.markdown(
+    f"""
+- **USGS monitoring statistics** (`water_flow_data_sandoval_county_sources.csv`): monthly and yearly
+  statistics for 30 monitoring sites in Sandoval County, covering streamflow, groundwater levels,
+  reservoir storage, sediment, temperature, and water quality, from 1926 to 2026.
+- **OSE aquifer tests** (`ose_aquifer_test_wells.csv`, cleaned into `data/clean/aquifer_tests.csv`, which
+  the charts use): New Mexico Office of the State Engineer aquifer-test records, including well depth,
+  geologic formation, and hydraulic properties.
+- **NMBGMR groundwater levels** (`data2_groundwater_sandoval_county.csv`, cleaned into
+  `data/clean/groundwater_levels_nmbgmr.csv`): {nm_rows} depth-to-water
+  measurements from {nm_wells} wells, mostly around Placitas, {nm_years}.
+- **Rio Puerco at Cuba** (`data4_*.csv`, cleaned into `data/clean/streamflow_measurements.csv`): {rp_n} USGS
+  streamflow visits at Cuba, {rp_years}.
+- **OSE well logs** (`data7_Wells With Well Log Information.csv`, cleaned into `data/clean/well_logs.csv`):
+  drilling records for {wl_n} wells in
+  the northwest of the county, {wl_years}.
+- **Aquifer sensitivity** (`data3_Aquifer_Sensitivity.csv`, cleaned into `data/clean/aquifer_sensitivity.csv`):
+  mapped areas with a sensitivity class,
+  but no locations yet, so it is summarized below rather than mapped.
+- **San Jose Formation study** (`data6_...pdf`, Blandford et al. 2025): published transmissivity values
+  shown on the Cuba case study page. The Ojo Alamo map plate (`data5_...pdf`) is a scanned image; a
+  labeled crop of its depth map is shown on the Cuba case study page, but it isn't digitized.
+"""
+)
 
 with st.expander("External data sources", expanded=False):
     st.markdown(
