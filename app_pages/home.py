@@ -1,7 +1,7 @@
 import streamlit as st
 
 # 1. Configure page title and wide layout support
-st.set_page_config(page_title="Beneath the Mesa", layout="wide")
+st.set_page_config(page_title="Beneath the Mesa", layout="wide", initial_sidebar_state="expanded")
 
 # 2. Add responsive CSS for mobile padding, typography, and button stacking
 st.markdown(
